@@ -4,7 +4,7 @@ import { LuSearch } from "react-icons/lu";
 import { MdClose } from "react-icons/md";
 import AddNewJobs from "../../Components/AddNewJob";
 import EditJobModal from "../../Components/EditJobModal";
-import { applicationsApi } from "../../lib/api";
+import { applicationsApi, savedJobsApi } from "../../lib/api";
 
 const formatDate = (date) => {
   if (!date) {
@@ -25,6 +25,8 @@ const Applications = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [savedJobs, setSavedJobs] = useState([]);        
+  const [savedJobsLoading, setSavedJobsLoading] = useState(false);  
 
   const loadJobs = async () => {
     try {
@@ -39,8 +41,22 @@ const Applications = () => {
     }
   };
 
+  const loadSavedJobs = async () => {
+    try {
+      setSavedJobsLoading(true);
+      const data = await savedJobsApi.list();
+      setSavedJobs(data);
+      setErrorMessage("");
+      } catch (error) {
+      setErrorMessage(error.message || "Failed to load applications");
+      } finally {
+      setSavedJobsLoading(false);
+      }
+  };
+
   useEffect(() => {
     loadJobs();
+    loadSavedJobs();
   }, []);
 
   const handleOpenJobModal = () => {
@@ -72,22 +88,38 @@ const Applications = () => {
     setShowEditModal(true);
   };
 
-  const handleDeleteJob = async (jobToDelete) => {
-    try {
-      await applicationsApi.remove(jobToDelete.id);
-      setJobs((prev) => prev.filter((job) => job.id !== jobToDelete.id));
-      setCheckedJobIds((prev) => prev.filter((id) => id !== jobToDelete.id));
-      setErrorMessage("");
-    } catch (error) {
-      setErrorMessage(error.message || "Failed to delete application");
-    }
-  };
-
   const handleCheckJob = (jobId) => {
     setCheckedJobIds((prev) =>
       prev.includes(jobId) ? prev.filter((id) => id !== jobId) : [...prev, jobId]
     );
   };
+
+  const deleteJob = async (jobToDelete) => {
+    if (!jobToDelete || !jobToDelete.id) {
+      return;
+    }
+    
+    try {
+      if (activeTab === "saved")
+      {
+        await savedJobsApi.remove(jobToDelete.id);
+        setSavedJobs((prev) => prev.filter((job) => job.id !== jobToDelete.id));
+      }
+      else{
+        await applicationsApi.remove(jobToDelete.id);
+        setJobs((prev) => prev.filter((job) => job.id !== jobToDelete.id));
+        setCheckedJobIds((prev) => prev.filter((id) => id !== jobToDelete.id));
+      } 
+
+      setErrorMessage("");
+    } catch (error) {
+      const fallback =
+      activeTab === "saved"
+        ? "Failed to delete saved job"
+        : "Failed to delete application";
+      setErrorMessage(error.message || fallback);
+    }
+  }
 
   const handleBulkDelete = async () => {
     const confirmDelete = window.confirm(
@@ -114,9 +146,10 @@ const Applications = () => {
   };
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const visibleJobs = jobs.filter((job) => {
-    const matchesTab = activeTab === "all" || job.status === activeTab;
-    const matchesSearch =
+  const jobsToDisplay = activeTab === "saved" ? savedJobs : jobs;
+
+  const visibleJobs = jobsToDisplay.filter((job) => {
+      const matchesTab = activeTab === "all" || activeTab === "saved" || job.status === activeTab;    const matchesSearch =
       normalizedSearch.length === 0 ||
       job.jobTitle.toLowerCase().includes(normalizedSearch) ||
       job.companyName.toLowerCase().includes(normalizedSearch);
@@ -176,7 +209,7 @@ const Applications = () => {
             id="search-applications"
             type="search"
             name="search"
-            placeholder="search"
+            placeholder="Search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             className="w-32 outline-none bg-white"
@@ -196,7 +229,7 @@ const Applications = () => {
 
       <div className="mb-4 border-b overflow-auto">
         <ul className="flex text-sm font-medium text-center">
-          {["all", "applied", "interview", "offered", "rejected"].map((tab) => (
+          {["all", "applied", "interview", "offered", "rejected", "saved"].map((tab) => (
             <li className="me-2" key={tab}>
               <button
                 className={`inline-block p-4 ${
@@ -218,21 +251,22 @@ const Applications = () => {
           {visibleJobs.map((job) => (
             <div
               key={job.id}
-              className="rounded-lg overflow-hidden mt-4 cursor-pointer hover:shadow-lg bg-[#F8F9F8] border border-light-gray"
+              className="relative rounded-lg overflow-hidden mt-4 cursor-pointer hover:shadow-lg bg-[#F8F9F8] border border-light-gray"
               onClick={() => handleOpenEditModal(job)}
             >
+              <button
+                className="absolute top-2 right-2 text-gray text-lg"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  deleteJob(job);
+                }}
+              >
+                <MdClose />
+              </button>
+
               <div className="p-4">
                 <div className="flex justify-between items-center">
                   <p className="text-teal text-lg font-semibold">{job.jobTitle}</p>
-                  <span
-                    className="text-gray text-lg cursor-pointer"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleDeleteJob(job);
-                    }}
-                  >
-                    <MdClose />
-                  </span>
                 </div>
                 <h3 className="text-xl mt-2">{job.companyName}</h3>
                 <p className="text-xs text-gray mt-2">
@@ -281,7 +315,7 @@ const Applications = () => {
             </tbody>
           </table>
           {checkedJobIds.length > 0 && (
-            <div className="flex justify-end mt-4 absolute right-0 mr-5">
+            <div className="flex justify-end mt-4 right-0 mr-5">
               <button
                 className="bg-[#c40707] text-white py-1 px-4 rounded text-sm"
                 onClick={handleBulkDelete}

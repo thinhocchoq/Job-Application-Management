@@ -5,9 +5,15 @@ PostgreSQL
 
 ## **Project Structure**
 - `frontend/`: React + Vite client app
-- `backend/`: Express + PostgreSQL API
+- `backend/`: Express + Node API
+- `package.json` and `package-lock.json`: root-level dependency management for both apps
 
 ## **How to Run the Project**
+- Install dependencies once from the repository root: `npm install`
+- Run both apps together: `npm run dev`
+- Run only the backend: `npm run dev:backend`
+- Run only the frontend: `npm run dev:frontend`
+- Build the frontend: `npm run build:frontend`
 
 
 ## **Environment Setup**

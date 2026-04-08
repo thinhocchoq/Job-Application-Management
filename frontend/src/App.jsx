@@ -13,6 +13,7 @@ import Settings from "./Pages/Settings";
 import RecruiterDashboard from "./Pages/Recruiters/RecruiterDashboard";
 import JobPost from "./Pages/Recruiters/JobPost";
 import ForgotPass from "./Pages/Auth/ForgotPass";
+import JobDetail from "./Pages/Jobs/JobDetail";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="signup/create" element={<Signup />} />
           <Route path="login" element={<Login />} />
           <Route path="forgot-password" element={<ForgotPass />} />
+          <Route path="/jobs/:id" element={<JobDetail />} />
         </Route>
         <Route path="/dashboard" element={<DashboardLayout allowedRole="candidate" />}>
           <Route index element={<Dashboard />} />

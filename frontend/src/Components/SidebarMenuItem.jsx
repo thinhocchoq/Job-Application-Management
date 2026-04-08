@@ -17,7 +17,7 @@ const candidateMenu = [
   },
   {
     id: 2,
-    label: "Job search",
+    label: "Job Search",
     icon: <BsBriefcaseFill />,
     path: "job",
   },

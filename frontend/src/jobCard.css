@@ -1,0 +1,35 @@
+.company-field {
+    font-size: 14px;
+    color: #666;
+    display: flex; /* Dùng flex để icon và text cân bằng */
+    align-items: center;
+}
+
+.company-field .icon-mr {
+    color: #999;
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.company-field strong {
+    color: #333;
+    font-weight: 500;
+    margin-left: 5px;
+}
+
+/* --- Tùy chỉnh Icon cho KHỐI THÔNG TIN CHUNG --- */
+.info-label {
+    color: #777;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Khoảng cách giữa icon và text */
+}
+
+/* Đảm bảo các icon có độ rộng đều nhau để text thẳng hàng */
+.info-label .icon-fixed {
+    color: #9ab4d6; 
+    font-size: 16px;
+    min-width: 18px; /* Dùng min-width thay vì width cố định để icon không bị bóp méo */
+    text-align: center;
+}

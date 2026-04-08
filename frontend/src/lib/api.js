@@ -101,6 +101,43 @@ export const applicationsApi = {
     }),
 };
 
+export const jobPostsApi = {
+  list: (search = "") => {
+    const normalizedSearch = search.trim();
+    const query = normalizedSearch ? `?search=${encodeURIComponent(normalizedSearch)}` : "";
+    return request(`/job-posts${query}`);
+  },
+
+  getById: (id) => request(`/job-posts/${id}`),
+};
+
+export const savedJobsApi = {
+  save: (jobId) => request('/saved-jobs', { 
+    method: 'POST', 
+    body: JSON.stringify({ jobId }) 
+  }),
+  
+  list: () => request('/saved-jobs'),
+
+  remove: (id) =>
+    request(`/saved-jobs/${id}`, {
+      method: "DELETE",
+    }),
+  };
+
+export const applyFromJob = (jobId) => {
+  const normalizedJobId = Number(jobId);
+
+  if (!Number.isInteger(normalizedJobId) || normalizedJobId <= 0) {
+  throw new Error("Invalid jobId");
+  }
+
+  return request("/applications/apply", {
+    method: "POST",
+    body: JSON.stringify({ jobId: normalizedJobId }),
+    });
+};
+
 export const tokenStorage = {
   getToken,
   getRole,

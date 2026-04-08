@@ -80,9 +80,13 @@ router.get("/", requireAuth, async (req, res) => {
     return res.json([]);
   }
 
+  const rawStatus = typeof req.query.status === "string" ? req.query.status.trim().toLowerCase() : ""
+  
+  const status = toDbStatus(rawStatus);
+
   try {
-    const result = await pool.query(
-      `SELECT
+    let query = `
+      SELECT
           a.id,
           jp.title AS job_title,
           COALESCE(r.company_name, 'Unknown Company') AS company_name,
@@ -91,13 +95,22 @@ router.get("/", requireAuth, async (req, res) => {
        FROM applications a
        INNER JOIN job_posts jp ON jp.id = a.job_post_id
        LEFT JOIN recruiters r ON r.id = jp.recruiter_id
-       WHERE a.candidate_id = $1
-       ORDER BY a.applied_at DESC, a.id DESC`,
-      [req.user.id]
-    );
+       WHERE a.candidate_id = $1`;
+
+    const queryParams = [req.user.id];
+
+    if (status) {
+      query += ` AND a.status = $2`;
+      queryParams.push(status);
+    }
+
+    query += ` ORDER BY a.applied_at DESC, a.id DESC`;
+
+    const result = await pool.query(query, queryParams);
 
     return res.json(result.rows.map(mapRow));
-  } catch (error) {
+  } 
+  catch (error) {
     return res.status(500).json({ message: "Failed to load applications", detail: error.message });
   }
 });
@@ -221,44 +234,25 @@ router.put("/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/:id", requireAuth, async (req, res) => {
-  if (req.user.role !== "candidate") {
+  /*if (req.user.role !== "candidate") {
     return res.status(403).json({ message: "Only candidate accounts can delete applications" });
-  }
+  }*/
 
   const { id } = req.params;
-
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
 
-    const existing = await client.query(
-      `SELECT id, job_post_id
-       FROM applications
-       WHERE id = $1 AND candidate_id = $2`,
-      [id, req.user.id]
-    );
-
-    if (existing.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Application not found" });
-    }
-
-    const jobPostId = existing.rows[0].job_post_id;
-
-    await client.query(
+    const result = await client.query(
       "DELETE FROM applications WHERE id = $1 AND candidate_id = $2",
       [id, req.user.id]
     );
 
-    await client.query(
-      `DELETE FROM job_posts
-       WHERE id = $1
-         AND NOT EXISTS (
-           SELECT 1 FROM applications WHERE job_post_id = $1
-         )`,
-      [jobPostId]
-    );
+    if (result.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Application not found" });
+    }
 
     await client.query("COMMIT");
 
@@ -268,6 +262,42 @@ router.delete("/:id", requireAuth, async (req, res) => {
     return res.status(500).json({ message: "Failed to delete application", detail: error.message });
   } finally {
     client.release();
+  }
+});
+
+router.post("/apply", requireAuth, async (req, res) => {
+  if (req.user.role !== "candidate") {
+    return res.status(403).json({message: "Access Denied"});
+  }
+
+  const jobId = Number(req.body?.jobId);
+
+  if (!jobId || isNaN(jobId)) {
+    return res.status(400).json({ message: "Invalid Job ID provided." });
+  }
+
+  try {
+    const checkExist = await pool.query(
+      'SELECT 1 FROM applications WHERE candidate_id = $1 AND job_post_id = $2',
+      [req.user.id, jobId]
+    )
+
+    if (checkExist.rows.length > 0 )
+    {
+      return res.status(409).json({ message: "You have already applied for this job." });
+    }
+
+    const application = await pool.query(
+    `INSERT INTO applications (candidate_id, job_post_id, applied_at, status)
+          VALUES ($1, $2, NOW(), 'applied')
+          RETURNING *`,
+          [req.user.id, jobId]
+    );
+
+    return res.status(201).json([application.rows[0]]);
+  } 
+  catch (error) {
+    return res.status(500).json({ message: "Failed to submit applications", detail: error.message });
   }
 });
 

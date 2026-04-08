@@ -7,6 +7,7 @@ import { CiMenuKebab } from "react-icons/ci";
 import DashboardCard from "../../Components/DashboardCard";
 import { applicationsApi, usersApi } from "../../lib/api";
 import "chart.js/auto";
+import { jobPostsApi } from "../../lib/api";
 
 const Dashboard = () => {
   const [userName, setUserName] = useState("");
@@ -120,24 +121,34 @@ const Dashboard = () => {
               title="Complete your profile"
               description="Add more details"
             />
+
             <DashboardCard
               to="/dashboard/job"
               icon={LuSearch}
               title="Search for Jobs"
               description="Find jobs that match your skills"
             />
+
             <DashboardCard
               to="/dashboard/applications"
               icon={BsBriefcase}
               title="Update application status"
               description="Keep your job applications up to date"
             />
-            <DashboardCard
-              to="/dashboard"
-              icon={FaRegLightbulb}
-              title="Prepare for Interview"
-              description="Browse our interview resources to help you prepare"
-            />
+
+            <div
+              className = "card-container"
+              onClick = {() => window.open('https://www.themuse.com/advice/interviewing')}
+              style = {{ cursor: 'pointer' }}
+            >
+              <DashboardCard
+                to="/dashboard"
+                icon={FaRegLightbulb}
+                title="Prepare for Interview"
+                description="Browse our interview resources to help you prepare"
+              />
+            </div>
+            
           </div>
 
           <div className="grid lg:grid-cols-3 gap-4">

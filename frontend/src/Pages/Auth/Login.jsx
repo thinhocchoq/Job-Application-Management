@@ -105,7 +105,7 @@ const Login = () => {
               <p className="text-sm text-dark-gray">
                 Don&apos;t have an account?{" "}
                 <Link to="/signup" className="underline hover:no-underline">
-                  create one
+                  Create one
                 </Link>
               </p>
             </div>

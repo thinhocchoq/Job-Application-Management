@@ -8,6 +8,8 @@ import { testDbConnection } from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import applicationRoutes from "./routes/applications.js";
+import jobPostRoutes from "./routes/jobPosts.js";
+import savedJobsRoutes from "./routes/savedJobs.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +34,8 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/job-posts", jobPostRoutes);
+app.use("/api/saved-jobs", savedJobsRoutes);
 
 app.use((err, _req, res, _next) => {
   return res.status(500).json({ message: "Internal server error", detail: err.message });

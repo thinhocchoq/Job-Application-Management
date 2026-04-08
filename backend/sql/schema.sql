@@ -56,6 +56,18 @@ CREATE TABLE applications (
     CONSTRAINT uq_candidate_job UNIQUE (candidate_id, job_post_id)
 );
 
+CREATE TABLE saved_jobs (
+    id BIGSERIAL PRIMARY KEY,
+    candidate_id BIGINT NOT NULL,
+    job_post_id BIGSERIAL NOT NULL,
+    saved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_savedjob_candidate
+      FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE,
+    CONSTRAINT fk_savedjob_job
+      FOREIGN KEY (job_post_id) REFERENCES job_posts(id) ON DELETE CASCADE
+);
+
+
 CREATE INDEX idx_job_posts_recruiter_id ON job_posts(recruiter_id);
 CREATE INDEX idx_applications_candidate_id ON applications(candidate_id);
 CREATE INDEX idx_applications_job_post_id ON applications(job_post_id);

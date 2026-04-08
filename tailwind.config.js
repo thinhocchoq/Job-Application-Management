@@ -4,7 +4,7 @@ import colors from "tailwindcss/colors";
 export default {
   content: {
     relative: true,
-    files: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+    files: ["./frontend/index.html", "./frontend/src/**/*.{js,ts,jsx,tsx}"],
   },
   theme: {
     extend: {
@@ -38,4 +38,3 @@ export default {
   },
   plugins: [],
 };
-

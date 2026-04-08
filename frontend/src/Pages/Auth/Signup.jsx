@@ -37,10 +37,10 @@ const Signup = () => {
   };
 
   const validatePassword = (password) => {
-    const isValidLength = password.length > 5;
+    const isValidLength = password.length >= 5;
 
     if (!isValidLength) {
-      return "Password must be longer than 5 characters.";
+      return "Password must be 5 or more characters.";
     }
     return "";
   };

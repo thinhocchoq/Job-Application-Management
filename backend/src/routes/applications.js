@@ -37,6 +37,7 @@ const mapRow = (row) => ({
   companyName: row.company_name,
   applicationDate: row.application_date,
   status: toClientStatus(row.status),
+  jobPostId: row.job_post_id
 });
 
 const ensureRecruiterForCompany = async (client, companyName) => {
@@ -91,7 +92,8 @@ router.get("/", requireAuth, async (req, res) => {
           jp.title AS job_title,
           COALESCE(r.company_name, 'Unknown Company') AS company_name,
           a.applied_at::date AS application_date,
-          a.status
+          a.status,
+          a.job_post_id
        FROM applications a
        INNER JOIN job_posts jp ON jp.id = a.job_post_id
        LEFT JOIN recruiters r ON r.id = jp.recruiter_id
@@ -234,9 +236,9 @@ router.put("/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/:id", requireAuth, async (req, res) => {
-  /*if (req.user.role !== "candidate") {
+  if (req.user.role !== "candidate") {
     return res.status(403).json({ message: "Only candidate accounts can delete applications" });
-  }*/
+  }
 
   const { id } = req.params;
   const client = await pool.connect();

@@ -8,8 +8,8 @@ import {
   FaHome, FaHeartbeat, FaMoneyBillWave, FaDumbbell
 } from "react-icons/fa";
 
-// Giữ nguyên các API import của bạn
-import { applyFromJob, usersApi, jobPostsApi, savedJobsApi } from "../../lib/api";
+import { applyFromJob, usersApi, jobPostsApi, savedJobsApi, applicationsApi } from "../../lib/api";
+import FormApply from "./FormApply";
 
 const JobDetail = () => {
   const navigate = useNavigate();
@@ -20,30 +20,15 @@ const JobDetail = () => {
   const [userEmail, setUserEmail] = useState("");
   const [jobs, setJobs] = useState([]);
   const [jobDetail, setJobDetail] = useState("");
-  
   const [savingJobIds, setSavingJobIds] = useState([]);
   const [savedJobIds, setSavedJobIds] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isApplied, setIsApplied] = useState(false);
 
-  // Logic Apply Job của bạn
-  const applyJob = async (jobId) => {
-    const normalizedJobId = Number(jobId ?? jobDetail?.id ?? id);
-    try {
-      setIsLoading(true);
-      const response = await applyFromJob(normalizedJobId);
-      setIsApplied(true); 
-      alert("Apply thành công.");   
-      setTimeout(() => { navigate("/job"); }, 1000);
-    } catch (error) {
-      console.error("Lỗi khi lưu:", error);
-      alert("Apply thất bại, có thể bạn đã apply job này rồi.");   
-    } finally {
-      setIsLoading(false);
-    } 
-  }; 
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [cvFile, setCvFile] = useState(null);
+  const [coverLetter, setCoverLetter] = useState("");
 
-  // Logic Lưu Job của bạn
   const handleSaveClick = async (jobId) => {
     if (savingJobIds.includes(jobId) || savedJobIds.includes(jobId)) return;
     setSavingJobIds((prev) => [...prev, jobId]);
@@ -59,7 +44,6 @@ const JobDetail = () => {
     }
   };
 
-  // Logic xử lý thời gian của bạn
   const formatDeadline = (value) => {
     if (!value) return "Chưa cập nhật";
     const parsed = new Date(value);
@@ -77,7 +61,6 @@ const JobDetail = () => {
     return parsed < today;
   }
 
-  // Effect Fetch Data của bạn
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -100,7 +83,38 @@ const JobDetail = () => {
     fetchJobDetail();
   }, [id]);
 
+  useEffect(() => {
+    if (!id) return ;
+    const fetchAppliedStatus = async () => {
+    try {
+      const apps = await applicationsApi.list();
+      const alreadyApplied = apps.some(
+        (app) => Number(app.jobPostId) === Number(id)
+      );
+      setIsApplied(alreadyApplied);
+    } catch (error) {
+      console.error("Lỗi check trạng thái apply:", error);
+      setIsApplied(false);
+    }
+  };
+    fetchAppliedStatus();
+  }, [id]);
+
   const isSaved = savedJobIds.includes(jobDetail?.id);
+
+  let buttonText = "Apply Now";
+  let applyButtonClass = "flex-1 md:flex-none flex items-center justify-center px-8 py-2.5 font-semibold rounded-lg transition shadow-sm text-white ";
+  if (isApplied) {
+    buttonText = "Đã ứng tuyển";
+    applyButtonClass += "bg-gray-400 cursor-not-allowed"; 
+  } 
+  else if (checkDeadline(jobDetail?.deadline)) {
+    buttonText = "Đã hết hạn";
+    applyButtonClass += "bg-red cursor-not-allowed"; 
+  } 
+  else {
+    applyButtonClass += "bg-emerald-500 hover:bg-emerald-600"; 
+  }
 
   return (
     <div className='min-h-screen bg-gray-50 text-gray-800 font-sans'>
@@ -153,15 +167,11 @@ const JobDetail = () => {
               {isSaved ? "Saved" : "Save Job"}
             </button>
             <button 
-              disabled={checkDeadline(jobDetail?.deadline) || isLoading}
-              onClick={() => applyJob(jobDetail?.id)}
-              className={`flex-1 md:flex-none flex items-center justify-center px-8 py-2.5 font-semibold rounded-lg transition shadow-sm ${
-                checkDeadline(jobDetail?.deadline) 
-                  ? "bg-red-500 hover:bg-red-600 text-white cursor-not-allowed" 
-                  : "bg-emerald-500 hover:bg-emerald-600 text-white"
-              }`}
+              disabled={checkDeadline(jobDetail?.deadline) || isLoading || isApplied}
+              onClick={() => setShowApplyModal(true)}
+              className={applyButtonClass}
             >
-              {isLoading ? "Processing..." : checkDeadline(jobDetail?.deadline) ? "Đã hết hạn" : "Apply Now"}
+              {isLoading ? "Processing..." : buttonText}
             </button>
           </div>
         </div>
@@ -343,7 +353,6 @@ const JobDetail = () => {
           </div>
         </div>
 
-        {/* ================= SIMILAR JOBS SECTION ================= */}
         <div className="mt-8">
           <div className="flex justify-between items-end mb-6">
             <div>
@@ -401,7 +410,15 @@ const JobDetail = () => {
             </div>
           </div>
         </div>
-
+        <FormApply 
+          isOpen={showApplyModal} 
+          onClose={() => setShowApplyModal(false)} 
+          jobDetail={jobDetail} 
+          onSuccess = {() => {
+            setIsApplied(true);
+            setShowApplyModal(true);
+          }}
+        />
       </div>
     </div>
   );

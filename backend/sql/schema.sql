@@ -59,7 +59,7 @@ CREATE TABLE applications (
 CREATE TABLE saved_jobs (
     id BIGSERIAL PRIMARY KEY,
     candidate_id BIGINT NOT NULL,
-    job_post_id BIGSERIAL NOT NULL,
+    job_post_id BIGINT NOT NULL,
     saved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_savedjob_candidate
       FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE,
@@ -67,7 +67,32 @@ CREATE TABLE saved_jobs (
       FOREIGN KEY (job_post_id) REFERENCES job_posts(id) ON DELETE CASCADE
 );
 
+CREATE TABLE messages (
+    id BIGSERIAL PRIMARY KEY,
+    sender_recruiter_id BIGINT NOT NULL,
+    receiver_candidate_id BIGINT NOT NULL,
+    job_post_id BIGINT,
+    application_id BIGINT,
+    subject VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT false,
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_message_sender_recruiter
+      FOREIGN KEY (sender_recruiter_id) REFERENCES recruiters(id) ON DELETE CASCADE,
+    CONSTRAINT fk_message_receiver_candidate
+      FOREIGN KEY (receiver_candidate_id) REFERENCES candidates(id) ON DELETE CASCADE,
+    CONSTRAINT fk_message_job_post
+      FOREIGN KEY (job_post_id) REFERENCES job_posts(id) ON DELETE SET NULL,
+    CONSTRAINT fk_message_application
+      FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE SET NULL
+);
+
 
 CREATE INDEX idx_job_posts_recruiter_id ON job_posts(recruiter_id);
 CREATE INDEX idx_applications_candidate_id ON applications(candidate_id);
 CREATE INDEX idx_applications_job_post_id ON applications(job_post_id);
+CREATE INDEX idx_messages_receiver_candidate_id ON messages(receiver_candidate_id);
+CREATE INDEX idx_messages_sender_recruiter_id ON messages(sender_recruiter_id);
+CREATE INDEX idx_messages_receiver_read_created ON messages(receiver_candidate_id, is_read, created_at DESC);
+CREATE INDEX idx_messages_application_id ON messages(application_id);

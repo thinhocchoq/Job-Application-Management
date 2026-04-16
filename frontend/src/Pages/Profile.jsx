@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import {
-  MdMailOutline,
-  MdOutlineCall,
-  MdOutlineLocationOn,
   MdOutlineEdit,
   MdAdd,
+  MdCameraAlt,
+  MdSettings,
+  MdPictureAsPdf,
+  MdClose
 } from "react-icons/md";
-import { usersApi } from "../lib/api";
+import { usersApi } from "../lib/api"; // Đảm bảo đường dẫn này đúng với project của bạn
+import ProfileTopBar from "../Components/ProfileTopBar";
 
 const Profile = () => {
   const [editingName, setEditingName] = useState(false);
@@ -89,19 +91,12 @@ const Profile = () => {
       await saveProfile();
     }
 
-    if (section === "personal") {
-      setEditingPersonal(!editingPersonal);
-    } else if (section === "experience") {
-      setEditingExperience(!editingExperience);
-    } else if (section === "jobPreferences") {
-      setEditingJobPreferences(!editingJobPreferences);
-    } else if (section === "resume") {
-      setEditingResume(!editingResume);
-    } else if (section === "skills") {
-      setEditingSkills(!editingSkills);
-    } else if (section === "name") {
-      setEditingName(!editingName);
-    }
+    if (section === "personal") setEditingPersonal(!editingPersonal);
+    else if (section === "experience") setEditingExperience(!editingExperience);
+    else if (section === "jobPreferences") setEditingJobPreferences(!editingJobPreferences);
+    else if (section === "resume") setEditingResume(!editingResume);
+    else if (section === "skills") setEditingSkills(!editingSkills);
+    else if (section === "name") setEditingName(!editingName);
   };
 
   const handleAddSkill = () => {
@@ -120,302 +115,265 @@ const Profile = () => {
     setResume(e.target.files[0]);
   };
 
+  // Nút lưu/edit dùng chung
+  const ActionButton = ({ isEditing, onClick, label = "Save" }) => (
+    isEditing ? (
+      <button
+        disabled={isSaving}
+        onClick={onClick}
+        className="px-4 py-2 bg-[#0b3b4d] text-white text-sm font-semibold rounded-lg hover:bg-[#072733] transition shadow-sm disabled:opacity-70"
+      >
+        {isSaving ? "Saving..." : label}
+      </button>
+    ) : (
+      <button 
+        onClick={onClick} 
+        className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-800 transition"
+      >
+        <MdOutlineEdit className="text-lg" /> Edit Info
+      </button>
+    )
+  );
+
   return (
-    <div>
-      <div>
-        <h2 className="text-primary-text text-3xl font-semibold mb-6">
-          Profile
-        </h2>
+    <div className="w-full">
+      <ProfileTopBar />
+      
+      {/* ================= KHUNG CHỨA TOÀN BỘ NỘI DUNG PROFILE ================= */}
+      <div className="w-full px-10 py-6 mx-auto font-sans text-gray-800">        
+        {/* ERROR MESSAGE */}
         {profileError && (
-          <p className="text-[#c93434] text-sm mb-3" role="alert">
+          <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-xl font-medium">
             {profileError}
-          </p>
+          </div>
         )}
-        <div className="flex flex-col justify-center items-center mb-6">
-          <div className="flex md:gap-4 md:justify-center justify-between items-center mt-4 mx-12">
-            <div className="">
-              <label htmlFor="name"></label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onInput={(e) => setName(e.target.value)}
-                disabled={!editingName}
-                className={`text-xl font-bold bg-[#000]/0${
-                  editingName
-                    ? " rounded-md outline-none ring-1 ring-light-gray py-1.5 px-2 text-dark-gray shadow-sm focus:ring-[1px] focus:ring-gray font-normal bg-white"
-                    : ""
-                }`}
+
+        {/* ================= HERO PROFILE ================= */}
+        <div className="flex justify-center mb-10">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 max-w-3xl">            
+            
+            {/* Avatar (Đã xóa các class bị nhầm) */}
+            <div className="relative w-36 h-36 bg-[#0b3b4d] rounded-2xl flex-shrink-0 flex items-end justify-center overflow-hidden shadow-sm">
+              <img 
+                src="https://api.dicebear.com/8.x/avataaars/svg?seed=Alex&backgroundColor=0b3b4d" 
+                alt="Avatar" 
+                className="w-32 h-32 object-cover translate-y-2"
               />
-            </div>
-            {editingName ? (
-              <button
-                disabled={isSaving}
-                className="cursor-pointer text-sm font-medium py-2.5 px-4 border border-black text-primary-text hover:bg-black hover:text-white rounded-md"
-                onClick={() => handleEditToggle("name")}
-              >
-                {isSaving ? "Saving..." : "Save"}
+              <button className="absolute bottom-2 right-2 bg-black/30 text-white p-1.5 rounded-lg backdrop-blur-md hover:bg-black/50 transition">
+                <MdCameraAlt size={16} />
               </button>
-            ) : (
-              <MdOutlineEdit
-                className="cursor-pointer text-xl"
-                onClick={() => handleEditToggle("name")}
-              />
-            )}
+            </div>
+
+            {/* Thông tin Tên & Mô tả */}
+            <div className="flex-1 text-center md:text-left mt-2">
+              <div className="flex items-center justify-center md:justify-start gap-3">
+                {editingName ? (
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="text-3xl font-bold border-b-2 border-[#0b3b4d] outline-none bg-transparent px-1 pb-1 w-full max-w-sm"
+                    placeholder="Your Name"
+                  />
+                ) : (
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                    {name || "Alex Rivera"} <span className="text-gray-400 font-medium text-2xl md:text-3xl hidden md:inline">• Senior Product Designer</span>
+                  </h1>
+                )}
+                
+                {editingName ? (
+                  <button onClick={() => handleEditToggle("name")} className="text-sm px-3 py-1.5 bg-[#0b3b4d] text-white rounded-lg font-semibold">Save</button>
+                ) : (
+                  <button onClick={() => handleEditToggle("name")} className="text-gray-400 hover:text-gray-800"><MdOutlineEdit size={22} /></button>
+                )}
+              </div>
+              <p className="text-gray-600 mt-3 text-lg leading-relaxed max-w-2xl">
+                Refining the narrative of modern user experiences through curated design systems and strategic product thinking.
+              </p>
+            </div>
           </div>
         </div>
-        <div className="grid md:grid-cols-2 gap-x-10 gap-y-8 text-black/80">
-          {/* PERSONAL INFORMATION */}
-          <div className="bg-white rounded-md p-4 border border-tertiary-text">
-            <span className="flex justify-between">
-              <h2 className="text-xl font-semibold mb-3 text-dark-gray">
-                Personal Details
-              </h2>
-              {editingPersonal ? (
-                <button
-                  disabled={isSaving}
-                  className="cursor-pointer text-sm font-medium py-2.5 px-4 border border-black text-primary-text hover:bg-black hover:text-white rounded-md"
-                  onClick={() => handleEditToggle("personal")}
-                >
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
-              ) : (
-                <MdOutlineEdit
-                  className="cursor-pointer text-xl"
-                  onClick={() => handleEditToggle("personal")}
-                />
-              )}
-            </span>
-            <div className="space-y-2 mt-4">
-              <div className="flex gap-3 items-center">
-                <label htmlFor="email">
-                  <MdMailOutline />
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled
-                  className={`border-0 bg-white ${
-                    editingPersonal
-                      ? "rounded-md outline-none ring-1 ring-light-gray py-1.5 px-2 text-dark-gray shadow-sm focus:ring-[1px] focus:ring-gray font-normal bg-white"
-                      : ""
-                  }`}
-                />
+
+        {/* ================= CÁC PHẦN BÊN DƯỚI ================= */}
+        <div className="flex flex-col gap-6">
+          {/* PERSONAL DETAILS */}
+          <div className="bg-white rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl md:text-2xl font-bold text-[#0b3b4d]">Personal Details</h2>
+              <ActionButton isEditing={editingPersonal} onClick={() => handleEditToggle("personal")} />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Email */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Email Address</p>
+                {editingPersonal ? (
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" />
+                ) : (
+                  <p className="font-semibold text-gray-900">{email || "alex.rivera@design.curator"}</p>
+                )}
               </div>
-              <div className="flex gap-3 items-center ">
-                <label htmlFor="tel">
-                  <MdOutlineCall />
-                </label>
-                <input
-                  id="tel"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={!editingPersonal}
-                  className={`border-0 bg-white ${
-                    editingPersonal
-                      ? "rounded-md outline-none ring-1 ring-light-gray py-1.5 px-2 text-dark-gray shadow-sm focus:ring-[1px] focus:ring-gray font-normal bg-white"
-                      : ""
-                  }`}
-                />
+              
+              {/* Phone */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Phone Number</p>
+                {editingPersonal ? (
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" />
+                ) : (
+                  <p className="font-semibold text-gray-900">{phone || "+1 (555) 092-4412"}</p>
+                )}
               </div>
-              <div className="flex gap-3 items-center">
-                <label htmlFor="location">
-                  <MdOutlineLocationOn />
-                </label>
-                <input
-                  id="location"
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  disabled={!editingPersonal}
-                  className={`border-0 bg-white ${
-                    editingPersonal
-                      ? "rounded-md outline-none ring-1 ring-light-gray py-1.5 px-2 text-dark-gray shadow-sm focus:ring-[1px] focus:ring-gray font-normal bg-white"
-                      : ""
-                  }`}
-                />
+
+              {/* Location */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Location</p>
+                {editingPersonal ? (
+                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" />
+                ) : (
+                  <p className="font-semibold text-gray-900">{location || "San Francisco, CA"}</p>
+                )}
               </div>
             </div>
           </div>
 
-          {/* EXPERIENCE */}
-          <div className="bg-white rounded-md p-4 border border-tertiary-text">
-            <span className="flex justify-between">
-              <h2 className="text-xl font-semibold mb-3 text-dark-gray">
-                Experience
-              </h2>
+          {/* WORK EXPERIENCE */}
+          <div className="bg-white rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl md:text-2xl font-bold text-[#0b3b4d]">Work Experience</h2>
+              <button 
+                onClick={() => handleEditToggle("experience")}
+                className="px-4 py-2 bg-[#0b3b4d] text-white text-sm font-semibold rounded-full hover:bg-[#072733] transition flex items-center gap-1 shadow-sm"
+              >
+                {editingExperience ? (isSaving ? "Saving..." : "Save Changes") : <><MdAdd size={18} /> Add Position</>}
+              </button>
+            </div>
+
+            <div className="bg-gray-50/80 rounded-2xl p-6 border border-gray-100">
               {editingExperience ? (
-                <button
-                  disabled={isSaving}
-                  className="cursor-pointer text-sm font-medium py-2.5 px-4 border border-black text-primary-text hover:bg-black hover:text-white rounded-md"
-                  onClick={() => handleEditToggle("experience")}
-                >
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
-              ) : (
-                <MdOutlineEdit
-                  className="cursor-pointer text-xl"
-                  onClick={() => handleEditToggle("experience")}
+                <textarea
+                  rows="4"
+                  value={experience}
+                  onChange={(e) => setExperience(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl p-4 outline-none focus:ring-2 focus:ring-[#0b3b4d]/20 focus:border-[#0b3b4d] resize-none"
+                  placeholder="Write about your work experience..."
                 />
+              ) : (
+                <div className="flex gap-4 items-start">
+                    <div className="w-12 h-12 bg-[#c6e1e8] rounded-xl flex items-center justify-center text-[#0b3b4d] flex-shrink-0">
+                      <MdAdd size={20} className="rotate-45" /> {/* Placeholder cho icon công ty */}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">Overview</h3>
+                      {experience ? (
+                        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{experience}</p>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No experience details added yet. Click "+ Add Position" to update.</p>
+                      )}
+                    </div>
+                </div>
               )}
-            </span>
-            <div className="mt-4">
-              <label htmlFor="experience"></label>
-              <textarea
-                id="experience"
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-                disabled={!editingExperience}
-                className={`border-0 bg-white ${
-                  editingExperience
-                    ? "rounded-md outline-none ring-1 ring-light-gray py-1.5 px-2 text-dark-gray shadow-sm focus:ring-[1px] focus:ring-gray font-normal bg-white"
-                    : ""
-                }`}
-              />
             </div>
           </div>
 
-          {/* JOB PREFERENCE */}
-          <div className="bg-white rounded-md p-4 border border-tertiary-text">
-            <span className="flex justify-between">
-              <h2 className="text-xl font-semibold mb-3 text-dark-gray">
-                Job Preferences
-              </h2>
-              {editingJobPreferences ? (
-                <button
-                  disabled={isSaving}
-                  className="cursor-pointer text-sm font-medium py-2.5 px-4 border border-black text-primary-text hover:bg-black hover:text-white rounded-md"
-                  onClick={() => handleEditToggle("jobPreferences")}
-                >
-                  {isSaving ? "Saving..." : "Save"}
+          {/* SKILLS & JOB PREFERENCES ROW */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* SKILLS */}
+            <div className="bg-[#f7f9fa] rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-[#0b3b4d]">Skills</h2>
+                <button onClick={() => handleEditToggle("skills")} className="text-gray-400 hover:text-gray-700 transition">
+                  {editingSkills ? <span className="text-sm font-bold bg-white px-3 py-1 rounded border shadow-sm">Save</span> : <MdSettings size={22} />}
                 </button>
-              ) : (
-                <MdOutlineEdit
-                  className="cursor-pointer text-xl"
-                  onClick={() => handleEditToggle("jobPreferences")}
-                />
-              )}
-            </span>
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill, index) => (
+                  <span key={index} className="bg-[#e4ebf0] text-[#2b4c59] px-3.5 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2">
+                    {skill}
+                    {editingSkills && (
+                      <button onClick={() => handleDeleteSkill(index)} className="text-[#2b4c59] hover:text-red-500 bg-white/50 rounded-full p-0.5">
+                        <MdClose size={14} />
+                      </button>
+                    )}
+                  </span>
+                ))}
+                
+                {editingSkills && (
+                  <div className="flex items-center bg-white rounded-full pl-3 pr-1 py-1 border border-gray-200 shadow-sm">
+                    <input
+                      type="text"
+                      value={newSkill}
+                      onChange={(e) => setNewSkill(e.target.value)}
+                      placeholder="New skill..."
+                      className="w-24 text-sm outline-none bg-transparent"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
+                    />
+                    <button onClick={handleAddSkill} className="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full p-1 transition">
+                      <MdAdd size={16} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
-            <div className="mt-4">
-              <label htmlFor="jobtype">Job Type: </label>
-              <input
-                id="jobtype"
-                type="text"
-                value={jobType}
-                onChange={(e) => setJobType(e.target.value)}
-                disabled={!editingJobPreferences}
-                className={`border-0 bg-white ${
-                  editingJobPreferences
-                    ? "rounded-md outline-none ring-1 ring-light-gray py-1.5 px-2 text-dark-gray shadow-sm focus:ring-[1px] focus:ring-gray font-normal bg-white"
-                    : ""
-                }`}
-              />
+            {/* JOB PREFERENCES */}
+            <div className="bg-[#f7f9fa] rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-[#0b3b4d]">Job Preferences</h2>
+                <ActionButton isEditing={editingJobPreferences} onClick={() => handleEditToggle("jobPreferences")} />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-50">
+                  <span className="text-gray-500 text-sm font-medium">Desired Salary</span>
+                  <span className="font-bold text-gray-900">$180k - $220k</span>
+                </div>
+                
+                <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-50">
+                  <span className="text-gray-500 text-sm font-medium">Job Type</span>
+                  {editingJobPreferences ? (
+                    <input 
+                      type="text" 
+                      value={jobType} 
+                      onChange={(e) => setJobType(e.target.value)} 
+                      className="text-right border-b border-gray-300 outline-none font-bold text-gray-900 w-1/2 focus:border-[#0b3b4d]" 
+                      placeholder="e.g. Full-time • Remote"
+                    />
+                  ) : (
+                    <span className="font-bold text-gray-900">{jobType || "Full-time • Remote"}</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* RESUME */}
-          <div className="bg-white rounded-md p-4 border border-tertiary-text">
-            <span className="flex justify-between">
-              <h2 className="text-xl font-semibold mb-3 text-dark-gray">
-                Resume
-              </h2>
-              {editingResume ? (
-                <button
-                  className="cursor-pointer text-sm font-medium py-2.5 px-4 border border-black text-primary-text hover:bg-black hover:text-white rounded-md"
-                  onClick={() => handleEditToggle("resume")}
-                >
-                  Save
-                </button>
-              ) : (
-                <MdOutlineEdit
-                  className="cursor-pointer text-xl"
-                  onClick={() => handleEditToggle("resume")}
-                />
-              )}
-            </span>
-            <div className="mt-4">
-              {resume ? (
-                <div>
-                  <p>Uploaded Resume: {resume.name}</p>
-                </div>
-              ) : (
-                <input
-                  type="file"
-                  onChange={handleResumeChange}
-                  disabled={!editingResume}
-                  className={`border-0 bg-white ${
-                    editingResume
-                      ? "rounded-md outline-none ring-1 ring-light-gray py-1.5 px-2 text-dark-gray shadow-sm focus:ring-[1px] focus:ring-gray font-normal bg-white"
-                      : ""
-                  }`}
-                />
-              )}
+          <div className="bg-[#eef3f6] rounded-[20px] p-6 shadow-sm border border-[#d6e3eb] flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="w-14 h-14 bg-white rounded-[14px] shadow-sm flex items-center justify-center text-[#0b3b4d]">
+                <MdPictureAsPdf size={28} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg">
+                  {resume ? resume.name : "Resume_Alex_Rivera_2024.pdf"}
+                </h3>
+                <p className="text-sm text-gray-500">Last updated October 12, 2023</p>
+              </div>
             </div>
-          </div>
 
-          {/* SKILLS */}
-          <div className="bg-white rounded-md p-4 border border-tertiary-text">
-            <span className="flex justify-between">
-              <h2 className="text-xl font-semibold mb-3 text-dark-gray">
-                Skills
-              </h2>
-              {editingSkills ? (
-                <button
-                  disabled={isSaving}
-                  className="cursor-pointer text-sm font-medium py-2.5 px-4 border border-black text-primary-text hover:bg-black hover:text-white rounded-md"
-                  onClick={() => handleEditToggle("skills")}
-                >
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
-              ) : (
-                <MdOutlineEdit
-                  className="cursor-pointer text-xl"
-                  onClick={() => handleEditToggle("skills")}
-                />
-              )}
-            </span>
-
-            <div className="mt-4">
-              {skills.map((skill, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center mb-2"
-                >
-                  <span>{skill}</span>
-                  {editingSkills && (
-                    <button
-                      className="text-[#d42c2c]"
-                      onClick={() => handleDeleteSkill(index)}
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              {editingSkills && (
-                <div className="flex items-center mt-4">
-                  <input
-                    type="text"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    className="border border-gray rounded-md py-1 px-2 mr-2"
-                  />
-                  <button
-                    className="bg-black text-white rounded-md py-2.5 px-3"
-                    onClick={handleAddSkill}
-                  >
-                    <MdAdd />
-                  </button>
-                </div>
-              )}
+            <div className="flex items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
+              <label className="flex-1 md:flex-none cursor-pointer px-6 py-2.5 border-2 border-[#0b3b4d] text-[#0b3b4d] text-sm font-bold rounded-full hover:bg-[#0b3b4d]/5 transition text-center">
+                Replace File
+                <input type="file" className="hidden" onChange={handleResumeChange} />
+              </label>
+              <button className="flex-1 md:flex-none px-6 py-3 bg-[#0b3b4d] text-white text-sm font-bold rounded-full hover:bg-[#072733] transition shadow-md">
+                View Document
+              </button>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

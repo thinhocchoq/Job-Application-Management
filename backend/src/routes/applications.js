@@ -82,6 +82,19 @@ const mapRow = (row) => ({
   jobPostId: row.job_post_id
 });
 
+const mapRecruiterRow = (row) => ({
+  id: row.id,
+  jobPostId: row.job_post_id,
+  applicationDate: row.application_date,
+  status: row.status,
+  candidateName: row.candidate_name,
+  candidateEmail: row.candidate_email,
+  candidatePhone: row.candidate_phone,
+  jobTitle: row.job_title,
+  companyName: row.company_name,
+  cvFileName: row.cv_file_name,
+});
+
 const ensureRecruiterForCompany = async (client, companyName) => {
   const normalizedCompanyName = companyName.trim();
 
@@ -156,6 +169,120 @@ router.get("/", requireAuth, async (req, res) => {
   } 
   catch (error) {
     return res.status(500).json({ message: "Failed to load applications", detail: error.message });
+  }
+});
+
+router.get("/recruiter", requireAuth, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiter accounts can access this resource" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT
+          a.id,
+          a.job_post_id,
+          a.applied_at::date AS application_date,
+          a.status,
+          c.name AS candidate_name,
+          c.email AS candidate_email,
+          c.phone AS candidate_phone,
+          jp.title AS job_title,
+           COALESCE(r.company_name, 'Unknown Company') AS company_name,
+           af.file_name AS cv_file_name
+       FROM applications a
+       INNER JOIN candidates c ON c.id = a.candidate_id
+       INNER JOIN job_posts jp ON jp.id = a.job_post_id
+       LEFT JOIN recruiters r ON r.id = jp.recruiter_id
+         LEFT JOIN application_files af ON af.application_id = a.id AND af.file_type = 'cv'
+       WHERE jp.recruiter_id = $1
+       ORDER BY a.applied_at DESC, a.id DESC`,
+      [req.user.id]
+    );
+
+    return res.json(result.rows.map(mapRecruiterRow));
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load recruiter applications", detail: error.message });
+  }
+});
+
+router.get("/recruiter/:id", requireAuth, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiter accounts can access this resource" });
+  }
+
+  const applicationId = Number(req.params.id);
+  if (!Number.isInteger(applicationId) || applicationId <= 0) {
+    return res.status(400).json({ message: "Invalid application id" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT
+          a.id,
+          a.job_post_id,
+          a.applied_at::date AS application_date,
+          a.status,
+          c.name AS candidate_name,
+          c.email AS candidate_email,
+          c.phone AS candidate_phone,
+          jp.title AS job_title,
+           COALESCE(r.company_name, 'Unknown Company') AS company_name,
+           af.file_name AS cv_file_name
+       FROM applications a
+       INNER JOIN candidates c ON c.id = a.candidate_id
+       INNER JOIN job_posts jp ON jp.id = a.job_post_id
+       LEFT JOIN recruiters r ON r.id = jp.recruiter_id
+         LEFT JOIN application_files af ON af.application_id = a.id AND af.file_type = 'cv'
+       WHERE jp.recruiter_id = $1 AND a.id = $2
+       LIMIT 1`,
+      [req.user.id, applicationId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    return res.json(mapRecruiterRow(result.rows[0]));
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load recruiter application detail", detail: error.message });
+  }
+});
+
+router.get("/recruiter/:id/cv", requireAuth, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiter accounts can access this resource" });
+  }
+
+  const applicationId = Number(req.params.id);
+  if (!Number.isInteger(applicationId) || applicationId <= 0) {
+    return res.status(400).json({ message: "Invalid application id" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT
+          af.file_name,
+          af.mime_type,
+          af.file_data
+       FROM applications a
+       INNER JOIN job_posts jp ON jp.id = a.job_post_id
+       INNER JOIN application_files af ON af.application_id = a.id AND af.file_type = 'cv'
+       WHERE jp.recruiter_id = $1 AND a.id = $2
+       LIMIT 1`,
+      [req.user.id, applicationId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "CV file not found" });
+    }
+
+    const file = result.rows[0];
+    res.setHeader("Content-Type", file.mime_type || "application/octet-stream");
+    res.setHeader("Content-Disposition", `inline; filename="${file.file_name || `cv-${applicationId}`}"`);
+    return res.send(file.file_data);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load CV file", detail: error.message });
   }
 });
 

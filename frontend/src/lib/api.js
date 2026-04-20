@@ -66,6 +66,40 @@ const request = async (path, options = {}) => {
   return response.json();
 };
 
+const requestBlob = async (path, options = {}) => {
+  const token = getToken();
+  const headers = {
+    ...(options.headers || {}),
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMessage = "Request failed";
+    try {
+      const payload = await response.json();
+      if (payload?.detail) {
+        errorMessage = `${payload.message || errorMessage}: ${payload.detail}`;
+      } else {
+        errorMessage = payload.message || errorMessage;
+      }
+    } catch {
+      errorMessage = response.statusText || errorMessage;
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  return response.blob();
+};
+
 export const authApi = {
   signup: (payload) =>
     request("/auth/signup", {
@@ -90,6 +124,9 @@ export const usersApi = {
 
 export const applicationsApi = {
   list: () => request("/applications"),
+  listForRecruiter: () => request("/applications/recruiter"),
+  getForRecruiter: (id) => request(`/applications/recruiter/${id}`),
+  getRecruiterCvFile: (id) => requestBlob(`/applications/recruiter/${id}/cv`),
   create: (payload) =>
     request("/applications", {
       method: "POST",
@@ -112,6 +149,8 @@ export const jobPostsApi = {
     const query = normalizedSearch ? `?search=${encodeURIComponent(normalizedSearch)}` : "";
     return request(`/job-posts${query}`);
   },
+
+  listMine: () => request("/job-posts/mine"),
 
   getById: (id) => request(`/job-posts/${id}`),
 };

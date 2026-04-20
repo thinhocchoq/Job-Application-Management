@@ -35,6 +35,34 @@ const JobDetail = () => {
   const [cvFile, setCvFile] = useState(null);
   const [coverLetter, setCoverLetter] = useState("");
 
+  const currentIndustry = (jobDetail?.industry || "").trim().toLowerCase();
+  const similarJobs = jobs
+    .filter((job) => {
+      if (!currentIndustry) return false;
+      const jobIndustry = (job?.industry || "").trim().toLowerCase();
+      return jobIndustry === currentIndustry && Number(job?.id) !== Number(id);
+    })
+    .slice(0, 3);
+
+  const getJobInitials = (title = "") => {
+    const words = title.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return "JB";
+    return words
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase();
+  };
+
+  const isRecentJob = (createdAt) => {
+    if (!createdAt) return false;
+    const createdDate = new Date(createdAt);
+    if (Number.isNaN(createdDate.getTime())) return false;
+    const now = new Date();
+    const diffDays = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays <= 7;
+  };
+
   const handleSaveClick = async (jobId) => {
     if (savingJobIds.includes(jobId) || savedJobIds.includes(jobId)) return;
     setSavingJobIds((prev) => [...prev, jobId]);
@@ -282,6 +310,7 @@ const JobDetail = () => {
                       logo: jobDetail?.companyLogo,
                       industry: jobDetail?.industry,
                       location: jobDetail?.location,
+                      address: jobDetail?.address,
                       jobTitle: jobDetail?.title,
                       salary: jobDetail?.salary,
                     },
@@ -361,49 +390,37 @@ const JobDetail = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Card 1 */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer flex flex-col justify-between h-52">
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center p-1.5"><img src="https://api.dicebear.com/8.x/initials/svg?seed=VS" alt="Logo" className="rounded" /></div>
-                  <span className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">New</span>
-                </div>
-                <h3 className="font-bold text-gray-900">Lead Product Designer</h3>
-                <p className="text-sm text-gray-500 flex items-center gap-1 mt-1"><LuMapPin size={14}/> Stockholm, Sweden</p>
+            {similarJobs.length > 0 ? (
+              similarJobs.map((job) => (
+                <button
+                  key={job.id}
+                  type="button"
+                  onClick={() => navigate(`/jobs/${job.id}`)}
+                  className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition text-left cursor-pointer flex flex-col justify-between h-52"
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center p-1.5 text-emerald-700 font-bold text-xs">
+                        {getJobInitials(job.title)}
+                      </div>
+                      {isRecentJob(job.createdAt) ? (
+                        <span className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">New</span>
+                      ) : null}
+                    </div>
+                    <h3 className="font-bold text-gray-900 line-clamp-1">{job.title}</h3>
+                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-1 line-clamp-1"><LuMapPin size={14} /> {job.location || "Remote"}</p>
+                  </div>
+                  <div className="flex justify-between items-center mt-4">
+                    <span className="font-bold text-gray-900">{job.salary || "Salary on request"}</span>
+                    <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">›</div>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="col-span-3 bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+                No similar jobs found in the same industry yet.
               </div>
-              <div className="flex justify-between items-center mt-4">
-                <span className="font-bold text-gray-900">$110k - $150k</span>
-                <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">›</div>
-              </div>
-            </div>
-            {/* Card 2 */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer flex flex-col justify-between h-52">
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center p-1.5"><img src="https://api.dicebear.com/8.x/initials/svg?seed=UX" alt="Logo" className="rounded" /></div>
-                </div>
-                <h3 className="font-bold text-gray-900">Visual Designer</h3>
-                <p className="text-sm text-gray-500 flex items-center gap-1 mt-1"><LuMapPin size={14}/> Copenhagen, Denmark</p>
-              </div>
-              <div className="flex justify-between items-center mt-4">
-                <span className="font-bold text-gray-900">$80k - $115k</span>
-                <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">›</div>
-              </div>
-            </div>
-            {/* Card 3 */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer flex flex-col justify-between h-52">
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center p-1.5 text-gray-300">...</div>
-                </div>
-                <h3 className="font-bold text-gray-900">UX Researcher</h3>
-                <p className="text-sm text-gray-500 flex items-center gap-1 mt-1"><LuMapPin size={14}/> Remote, Europe</p>
-              </div>
-              <div className="flex justify-between items-center mt-4">
-                <span className="font-bold text-gray-900">$90k - $120k</span>
-                <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">›</div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
         <FormApply 

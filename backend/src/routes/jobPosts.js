@@ -6,6 +6,7 @@ const router = express.Router();
 
 const mapRow = (row) => ({
   id: row.id,
+  recruiterId: row.recruiter_id,
   title: row.title,
   description: row.description || "",
   location: row.location || "",
@@ -19,8 +20,10 @@ const mapRow = (row) => ({
   companyName: row.company_name || "Unknown Company",
   phone: row.phone || "",
   website: row.website || "",
+  email: row.email || "",
   address: row.address || "",
   industry: row.industry || "",
+  applicantCount: Number(row.applicant_count || 0),
 });
 
 router.get("/", requireAuth, async (req, res) => {
@@ -45,7 +48,8 @@ router.get("/", requireAuth, async (req, res) => {
           r.phone,
           r.website,
           r.address,
-          r.industry
+          r.industry,
+          r.email
        FROM job_posts jp
        LEFT JOIN recruiters r ON r.id = jp.recruiter_id
        WHERE ($1 = ''
@@ -59,6 +63,66 @@ router.get("/", requireAuth, async (req, res) => {
     return res.json(result.rows.map(mapRow));
   } catch (error) {
     return res.status(500).json({ message: "Failed to load job posts", detail: error.message });
+  }
+});
+
+router.get("/mine", requireAuth, async (req, res) => {
+  if (req.user?.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiters can access this resource" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT
+          jp.id,
+          jp.recruiter_id,
+          jp.title,
+          jp.description,
+          jp.location,
+          jp.salary,
+          jp.deadline,
+          jp.created_at,
+          jp.experience,
+          jp.employment_type,
+          jp.responsibilities,
+          jp.requirements,
+          r.company_name,
+          r.phone,
+          r.website,
+          r.address,
+          r.industry,
+          r.email,
+          COALESCE(COUNT(a.id), 0) AS applicant_count
+       FROM job_posts jp
+       LEFT JOIN recruiters r ON r.id = jp.recruiter_id
+       LEFT JOIN applications a ON a.job_post_id = jp.id
+       WHERE jp.recruiter_id = $1
+       GROUP BY
+          jp.id,
+          jp.recruiter_id,
+          jp.title,
+          jp.description,
+          jp.location,
+          jp.salary,
+          jp.deadline,
+          jp.created_at,
+          jp.experience,
+          jp.employment_type,
+          jp.responsibilities,
+          jp.requirements,
+          r.company_name,
+          r.phone,
+          r.website,
+          r.address,
+          r.industry,
+          r.email
+       ORDER BY jp.created_at DESC, jp.id DESC`,
+      [req.user.id]
+    );
+
+    return res.json(result.rows.map(mapRow));
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load recruiter job posts", detail: error.message });
   }
 });
 
@@ -81,7 +145,8 @@ router.get('/:id', requireAuth, async (req, res) => {
           r.phone,
           r.website,
           r.address,
-          r.industry
+          r.industry, 
+          r.email
        FROM job_posts jp
        LEFT JOIN recruiters r ON r.id = jp.recruiter_id
        WHERE jp.id = $1`,

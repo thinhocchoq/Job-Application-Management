@@ -1,94 +1,201 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ApplicationDetail from './ApplicationDetail';
+import { applicationsApi, jobPostsApi } from '../../lib/api';
 
-const mockApplications = [
-  {
-    id: 1,
-    name: 'Althea Moretti',
-    ref: 'APP-98234',
-    jobTitle: 'Principal Brand Designer',
-    department: 'Creative Department',
+const stageMetaByStatus = {
+  accepted: {
     stage: 'OFFER STAGE',
     stageColor: 'text-emerald-700 bg-emerald-100',
     stageDot: 'bg-emerald-500',
-    subtext: 'Waiting for candidate response',
-    matchScore: 94,
-    avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Althea',
-    primaryAction: 'Finalize Hire →',
-    secondaryAction: 'View Dossier'
   },
-  {
-    id: 2,
-    name: 'Julian De Luca',
-    ref: 'APP-98245',
-    jobTitle: 'Senior Product Manager',
-    department: 'Technology Unit',
+  reviewed: {
     stage: '2ND INTERVIEW',
     stageColor: 'text-blue-700 bg-blue-100',
     stageDot: 'bg-blue-500',
-    subtext: 'Scheduled for Tomorrow, 10:00 AM',
-    matchScore: 82,
-    avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Julian',
-    primaryAction: 'Pass to Final →',
-    secondaryAction: 'Interview Prep'
   },
-  {
-    id: 3,
-    name: 'Sienna Knight',
-    ref: 'APP-98251',
-    jobTitle: 'Editorial Art Director',
-    department: 'Creative Department',
+  applied: {
     stage: 'CV SCREENING',
     stageColor: 'text-emerald-700 bg-emerald-100',
     stageDot: 'bg-emerald-500',
-    subtext: 'New Application',
-    subtextColor: 'text-orange-500',
-    matchScore: 88,
-    avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Sienna',
-    primaryAction: 'Book Screen 📅',
-    secondaryAction: 'Quick View'
   },
-  {
-    id: 4,
-    name: 'Leo Chen',
-    ref: 'APP-98260',
-    jobTitle: 'Visual Designer',
-    department: 'Creative Department',
+  rejected: {
     stage: 'REJECTED',
     stageColor: 'text-red-700 bg-red-100',
     stageDot: 'bg-red-500',
-    subtext: 'Skillset mismatch',
-    matchScore: 45,
-    avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Leo',
-    primaryAction: '↓',
-    secondaryAction: 'View Reason'
-  }
-];
+  },
+};
+
+const actionByStatus = {
+  accepted: {
+    primaryAction: 'Finalize Hire ->',
+    secondaryAction: 'View Dossier',
+  },
+  reviewed: {
+    primaryAction: 'Pass to Final ->',
+    secondaryAction: 'Interview Prep',
+  },
+  applied: {
+    primaryAction: 'Book Screen',
+    secondaryAction: 'Quick View',
+  },
+  rejected: {
+    primaryAction: '-',
+    secondaryAction: 'View Reason',
+  },
+};
+
+const scoreByStatus = {
+  accepted: 94,
+  reviewed: 82,
+  applied: 78,
+  rejected: 45,
+};
+
+const PAGE_SIZE = 10;
+
+const toTitleCase = (value) => {
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+};
+
+const formatAppliedDate = (value) => {
+  if (!value) return 'Date unavailable';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Date unavailable';
+  return `Applied on ${date.toLocaleDateString('en-US')}`;
+};
+
+const toDisplayRow = (row) => {
+  const normalizedStatus = (row.status || '').toLowerCase();
+  const stageMeta = stageMetaByStatus[normalizedStatus] || {
+    stage: toTitleCase(normalizedStatus || 'applied'),
+    stageColor: 'text-gray-700 bg-gray-100',
+    stageDot: 'bg-gray-500',
+  };
+  const actions = actionByStatus[normalizedStatus] || {
+    primaryAction: 'Review ->',
+    secondaryAction: 'Quick View',
+  };
+
+  return {
+    id: row.id,
+    jobPostId: row.jobPostId,
+    applicationDate: row.applicationDate,
+    status: normalizedStatus || 'applied',
+    name: row.candidateName || 'Unknown Candidate',
+    email: row.candidateEmail || '',
+    phone: row.candidatePhone || '',
+    ref: `APP-${String(row.id).padStart(5, '0')}`,
+    jobTitle: row.jobTitle || 'Unknown Position',
+    department: row.companyName || 'Unknown Company',
+    stage: stageMeta.stage,
+    stageColor: stageMeta.stageColor,
+    stageDot: stageMeta.stageDot,
+    subtext: formatAppliedDate(row.applicationDate),
+    matchScore: scoreByStatus[normalizedStatus] || 70,
+    avatar: `https://api.dicebear.com/8.x/notionists/svg?seed=${encodeURIComponent(row.candidateName || row.id)}`,
+    primaryAction: actions.primaryAction,
+    secondaryAction: actions.secondaryAction,
+  };
+};
 
 const Application = () => {
   // State quản lý việc chuyển đổi giữa màn hình Danh sách và màn hình Chi tiết
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const [jobOptions, setJobOptions] = useState([]);
+  const [selectedJobId, setSelectedJobId] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const [applicationsResult, jobsResult] = await Promise.all([
+          applicationsApi.listForRecruiter(),
+          jobPostsApi.listMine(),
+        ]);
+
+        if (isMounted) {
+          setApplications(Array.isArray(applicationsResult) ? applicationsResult : []);
+          setJobOptions(Array.isArray(jobsResult) ? jobsResult : []);
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setApplications([]);
+          setJobOptions([]);
+          setError(loadError.message || 'Failed to load applications');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredApplications = useMemo(() => {
+    const selectedId = Number(selectedJobId);
+    const byJob =
+      selectedJobId === 'all'
+        ? applications
+        : applications.filter((item) => Number(item.jobPostId) === selectedId);
+
+    return [...byJob].sort((a, b) => {
+      if (selectedJobId === 'all') {
+        const titleCompare = (a.jobTitle || '').localeCompare(b.jobTitle || '');
+        if (titleCompare !== 0) return titleCompare;
+      }
+
+      return new Date(b.applicationDate).getTime() - new Date(a.applicationDate).getTime();
+    });
+  }, [applications, selectedJobId]);
+
+  const displayApplications = useMemo(
+    () => filteredApplications.map(toDisplayRow),
+    [filteredApplications]
+  );
+
+  const metrics = useMemo(() => {
+    const pendingReview = filteredApplications.filter((item) => item.status === 'applied').length;
+    const initialScreening = pendingReview;
+    const interviewStage = filteredApplications.filter((item) => item.status === 'reviewed').length;
+    const offersOut = filteredApplications.filter((item) => item.status === 'accepted').length;
+
+    return {
+      pendingReview,
+      initialScreening,
+      interviewStage,
+      offersOut,
+    };
+  }, [filteredApplications]);
+
+  const selectedJobLabel = useMemo(() => {
+    if (selectedJobId === 'all') {
+      return 'All Jobs';
+    }
+
+    const selected = jobOptions.find((job) => String(job.id) === String(selectedJobId));
+    return selected?.title || 'Unknown Position';
+  }, [jobOptions, selectedJobId]);
+
+  const totalPages = Math.ceil(displayApplications.length / PAGE_SIZE);
 
   // Nếu có ứng viên được chọn, render trang Chi tiết (ApplicationDetail)
   if (selectedApplication) {
-    // Truyền prop onBack để có thể quay lại danh sách
     return (
       <div className="flex-1">
-
-        <ApplicationDetail candidate={selectedApplication} onBack={() => setSelectedApplication(null)} /> 
-        
-        <div className="p-8">
-          <button 
-            onClick={() => setSelectedApplication(null)}
-            className="mb-4 text-emerald-600 font-medium hover:underline flex items-center gap-2"
-          >
-            ← Quay lại danh sách
-          </button>
-          <div className="bg-white p-8 border rounded-xl shadow-sm text-center">
-            <h2 className="text-xl font-bold">Trang chi tiết của {selectedApplication.name}</h2>
-            <p className="text-gray-500">Giao diện ApplicationDetail.jsx sẽ được hiển thị ở đây.</p>
-          </div>
-        </div>
+        <ApplicationDetail candidate={selectedApplication} onBack={() => setSelectedApplication(null)} />
       </div>
     );
   }
@@ -120,44 +227,56 @@ const Application = () => {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Pending Review</p>
           <div className="flex items-baseline gap-3">
-            <span className="text-4xl font-extrabold text-gray-900">124</span>
-            <span className="text-sm font-semibold text-orange-500">Action Required</span>
+            <span className="text-4xl font-extrabold text-gray-900">{metrics.pendingReview}</span>
+            <span className="text-sm font-semibold text-orange-500">{metrics.pendingReview > 0 ? 'Action Required' : 'Up to date'}</span>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Initial Screening</p>
-          <span className="text-4xl font-extrabold text-gray-900">56</span>
+          <span className="text-4xl font-extrabold text-gray-900">{metrics.initialScreening}</span>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Interview Stage</p>
-          <span className="text-4xl font-extrabold text-gray-900">32</span>
+          <span className="text-4xl font-extrabold text-gray-900">{metrics.interviewStage}</span>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Offers Out</p>
-          <span className="text-4xl font-extrabold text-gray-900">8</span>
+          <span className="text-4xl font-extrabold text-gray-900">{metrics.offersOut}</span>
         </div>
       </div>
 
       {/* Toolbar (Filters & View Toggle) */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex gap-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-lg cursor-pointer">
-            Active Job: <span className="text-emerald-700">Principal Brand Designer</span>
-            <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          <div className="flex items-center gap-3 text-sm font-medium text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-lg">
+            <span>Active Job:</span>
+            <select
+              value={selectedJobId}
+              onChange={(event) => setSelectedJobId(event.target.value)}
+              className="bg-transparent text-emerald-700 font-semibold outline-none cursor-pointer"
+            >
+              <option value="all">All Jobs</option>
+              {jobOptions.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.title}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-lg cursor-pointer">
             Funnel Stage: <span className="text-emerald-700">All Stages</span>
             <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </div>
         </div>
-        <div className="bg-gray-100 p-1 rounded-lg flex text-sm font-medium">
-          <button className="px-4 py-1.5 bg-white text-emerald-700 rounded-md shadow-sm">Table</button>
-          <button className="px-4 py-1.5 text-gray-500 hover:text-gray-700">Pipeline</button>
-        </div>
       </div>
 
       {/* Data Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {loading ? (
+          <div className="px-6 py-10 text-center text-gray-500">Loading applications...</div>
+        ) : error ? (
+          <div className="px-6 py-10 text-center text-red-500">{error}</div>
+        ) : (
         <table className="w-full text-left">
           <thead className="bg-white border-b border-gray-100">
             <tr className="text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -169,7 +288,7 @@ const Application = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {mockApplications.map((app) => (
+            {displayApplications.map((app) => (
               <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
                 
                 {/* Cột 1: Thông tin ứng viên */}
@@ -222,7 +341,7 @@ const Application = () => {
                     >
                       {app.secondaryAction}
                     </button>
-                    {app.primaryAction !== '↓' ? (
+                    {app.primaryAction !== '-' ? (
                        <button className="px-4 py-2 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm transition-colors">
                          {app.primaryAction}
                        </button>
@@ -235,23 +354,32 @@ const Application = () => {
                 </td>
               </tr>
             ))}
+
+            {displayApplications.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+                  No applications found for your job posts yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
+        )}
 
         {/* Footer / Pagination */}
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-          <span>Showing <span className="font-medium text-gray-900">1 to 4</span> of 212 active applications</span>
-          <div className="flex gap-1.5">
-            <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 text-gray-400">&lt;</button>
-            <button className="w-8 h-8 flex items-center justify-center bg-emerald-700 text-white rounded font-medium shadow-sm">1</button>
-            <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 font-medium">2</button>
-            <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 font-medium">3</button>
-            <span className="w-8 h-8 flex items-center justify-center text-gray-400">...</span>
-            <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 text-gray-400">&gt;</button>
-          </div>
+          {totalPages > 1 && (
+            <div className="flex gap-1.5">
+              <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 text-gray-400">&lt;</button>
+              <button className="w-8 h-8 flex items-center justify-center bg-emerald-700 text-white rounded font-medium shadow-sm">1</button>
+              <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 font-medium">2</button>
+              <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 font-medium">3</button>
+              <span className="w-8 h-8 flex items-center justify-center text-gray-400">...</span>
+              <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 text-gray-400">&gt;</button>
+            </div>
+          )}
         </div>
       </div>
-      
     </div>
   );
 };

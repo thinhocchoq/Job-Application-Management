@@ -103,11 +103,11 @@ const ProfileTopBar = ({ userName, userEmail }) => {
   };
 
   return (
-    <header className="bg-[#fbfcfa] border-b border-gray-100 sticky top-0 z-50">
+    <header className="w-full flex items-center justify-between mb-8">
       <div className="w-full mx-auto px-10 h-16 flex items-center justify-between">        
         
         {/* Tiêu đề trang */}
-        <div className="flex items-center gap-10 text-xl font-bold text-[25px]">
+        <div className="flex items-center gap-10 text-xl font-bold text-[28px]">
           Profile
         </div>
 

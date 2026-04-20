@@ -44,7 +44,8 @@ CREATE TABLE job_posts (
     experience VARCHAR(100),
     employment_type VARCHAR(100),
     responsibilities TEXT,
-    requirements TEXT;
+    requirements TEXT,
+    type varchar(100),
     CONSTRAINT fk_job_recruiter
       FOREIGN KEY (recruiter_id) REFERENCES recruiters(id) ON DELETE CASCADE
 );

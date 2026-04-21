@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { messagesApi } from '../lib/api';
-import { LuBell } from "react-icons/lu";
+import { FaBell } from "react-icons/fa";
 
 const TopBar = ({ userName, userEmail }) => {
   const location = useLocation();
@@ -40,7 +40,7 @@ const TopBar = ({ userName, userEmail }) => {
               type="button"
               className="relative flex items-center justify-center p-2 hover:text-emerald-700 transition-colors"
             >
-              <LuBell size={20} />
+              <FaBell size={20} />
             </button>
           </div>
           <div className="text-right hidden sm:block">

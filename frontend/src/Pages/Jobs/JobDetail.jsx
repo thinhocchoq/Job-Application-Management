@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import TopBar from "../../Components/TopBar";
-import { LuMapPin, LuBuilding2, LuTrendingUp } from "react-icons/lu";
+import { FaMapMarker, FaBuilding, FaArrowUp } from "react-icons/fa";
 import { 
   FaCheckCircle, FaRegBookmark, FaBookmark, FaRegCalendarAlt, 
   FaRegMoneyBillAlt, FaBriefcase, FaLink, FaTwitter, FaLinkedinIn,
@@ -137,7 +137,7 @@ const JobDetail = () => {
   } 
   else if (checkDeadline(jobDetail?.deadline)) {
     buttonText = "Đã hết hạn";
-    applyButtonClass += "bg-red cursor-not-allowed"; 
+    applyButtonClass += "bg-red-500 cursor-not-allowed"; 
   } 
   else {
     applyButtonClass += "bg-emerald-500 hover:bg-emerald-600"; 
@@ -172,11 +172,11 @@ const JobDetail = () => {
               </h1>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                 <span className="flex items-center gap-1.5 font-medium text-gray-700">
-                  <LuBuilding2 className="text-gray-400" />
+                  <FaBuilding className="text-gray-400" />
                   {jobDetail?.companyName || "EcoSphere Solutions"}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <LuMapPin className="text-gray-400" />
+                  <FaMapMarker className="text-gray-400" />
                   {jobDetail?.location || "Oslo, Norway (Remote)"}
                 </span>
                 <span className="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide uppercase">
@@ -328,7 +328,7 @@ const JobDetail = () => {
               <div className="space-y-5">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-emerald-50 text-emerald-600 flex items-center justify-center rounded-lg shrink-0">
-                    <LuTrendingUp size={20} />
+                    <FaArrowUp size={20} />
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-0.5">Experience</p>
@@ -408,7 +408,7 @@ const JobDetail = () => {
                       ) : null}
                     </div>
                     <h3 className="font-bold text-gray-900 line-clamp-1">{job.title}</h3>
-                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-1 line-clamp-1"><LuMapPin size={14} /> {job.location || "Remote"}</p>
+                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-1 line-clamp-1"><FaMapMarker size={14} /> {job.location || "Remote"}</p>
                   </div>
                   <div className="flex justify-between items-center mt-4">
                     <span className="font-bold text-gray-900">{job.salary || "Salary on request"}</span>
@@ -427,10 +427,7 @@ const JobDetail = () => {
           isOpen={showApplyModal} 
           onClose={() => setShowApplyModal(false)} 
           jobDetail={jobDetail} 
-          onSuccess = {() => {
-            setIsApplied(true);
-            setShowApplyModal(true);
-          }}
+          onSuccess={() => setIsApplied(true)}
         />
       </div>
     </div>

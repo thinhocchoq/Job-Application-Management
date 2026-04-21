@@ -1,175 +1,208 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash, FaTimes, FaCheck, FaLock, FaTrashAlt } from "react-icons/fa";
+import { tokenStorage } from "../lib/api";
 import DeleteAccountModal from "../Components/DeleteAccountModal";
 
 const Settings = () => {
-  const [isPasswordHidden, setPasswordHidden] = useState(true);
-  const [isConfirmPasswordHidden, setConfirmPasswordHidden] = useState(true);
+  const navigate = useNavigate();
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
-  const handleDeleteModal = () => {
-    setShowDeleteAccountModal(true);
-  }
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const validatePassword = (pwd) => {
+    if (pwd.length < 8) return "Password must be at least 8 characters";
+    return "";
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!currentPassword) {
+      setError("Please enter your current password.");
+      return;
+    }
+    const newPwdError = validatePassword(newPassword);
+    if (newPwdError) {
+      setError(newPwdError);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("New passwords do not match.");
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setError("New password must be different from current password.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokenStorage.getToken()}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || "Failed to change password");
+        }
+        setSuccess("Password changed successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      });
+    } catch (err) {
+      setError(err.message || "Failed to change password");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <section className=" h-screen">
-      <div className="max-w-2xl mb-12">
-        <h2 className="text-teal-dark text-3xl font-semibold">
-          Change password
-        </h2>
-        <p className="text-gray mb-6">Manage your account password</p>
-        <form>
+    <section className="max-w-2xl">
+      <div className="mb-10">
+        <h2 className="text-2xl font-bold text-gray-900 mb-1">Settings</h2>
+        <p className="text-gray-500">Manage your account preferences and security</p>
+      </div>
+
+      {/* Change Password */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8 mb-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+            <FaLock size={20} className="text-emerald-600" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900">Change Password</h3>
+            <p className="text-sm text-gray-500">Update your password to keep your account secure</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
+              <FaTimes size={16} />
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-700 text-sm">
+              <FaCheck size={16} />
+              {success}
+            </div>
+          )}
+
           {/* Current Password */}
           <div>
-            <label className="sr-only">Current Password</label>
-            <input
-              type="password"
-              placeholder="Current Password"
-              required
-              className="border border-gray-light text-gray rounded-md p-3 outline-none focus:ring-[1px] focus:ring-gray w-full"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Current Password</label>
+            <div className="relative">
+              <input
+                type={showCurrent ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showCurrent ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+              </button>
+            </div>
           </div>
+
           {/* New Password */}
           <div>
-            <label className="sr-only">New Password</label>
-            <div className="relative mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
+            <div className="relative">
+              <input
+                type={showNew ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all"
+              />
               <button
                 type="button"
-                title="Show/Hide Password"
-                className="text-gray absolute right-3 inset-y-0 my-auto active:text-gray"
-                onClick={() => setPasswordHidden(!isPasswordHidden)}
+                onClick={() => setShowNew(!showNew)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                {isPasswordHidden ? (
-                  <svg
-                    className="w-6 h-6"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
-                    />
-                  </svg>
-                )}
+                {showNew ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
               </button>
-              <input
-                type={isPasswordHidden ? "password" : "text"}
-                placeholder="New Password"
-                required
-                className="border border-gray-light text-gray rounded-md p-3 outline-none focus:ring-[1px] focus:ring-gray w-full "
-              />
             </div>
           </div>
-          {/* Re Enter Password */}
+
+          {/* Confirm Password */}
           <div>
-            <label className="sr-only">Re Enter Password</label>
-            <div className="relative mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm New Password</label>
+            <div className="relative">
+              <input
+                type={showConfirm ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all"
+              />
               <button
                 type="button"
-                title="Show/Hide Password"
-                className="text-gray absolute right-3 inset-y-0 my-auto active:text-gray"
-                onClick={() =>
-                  setConfirmPasswordHidden(!isConfirmPasswordHidden)
-                }
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                {isConfirmPasswordHidden ? (
-                  <svg
-                    className="w-6 h-6"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
-                    />
-                  </svg>
-                )}
+                {showConfirm ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
               </button>
-              <input
-                type={isConfirmPasswordHidden ? "password" : "text"}
-                placeholder="Re enter New Password"
-                required
-                className="border border-gray-light text-gray rounded-md p-3 outline-none focus:ring-[1px] focus:ring-gray w-full"
-              />
             </div>
           </div>
-          {/* Cancel and Set New Password buttons */}
-          <div className="mt-4 font-semibold gap-4 flex">
-            <Link
-              to="/dashboard/dashboard"
-              className="bg-light-gray text-dark-gray rounded-md py-2 px-4"
-            >
-              Cancel
-            </Link>
+
+          <div className="flex gap-3 pt-2">
             <button
               type="submit"
-              className="bg-black text-white rounded-md py-2 px-6 flex justify-center items-center gap-3 text-sm"
+              disabled={isSubmitting}
+              className="px-6 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Save
+              {isSubmitting ? "Updating..." : "Update Password"}
             </button>
           </div>
         </form>
       </div>
-      {/* DELETE USER ACCOUNT */}
 
-      <div>
-        <h2 className=" text-3xl font-semibold">Delete Account:</h2>
-        <p className="text-gray mb-6">Permanently delete your account.</p>
+      {/* Delete Account */}
+      <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-6 md:p-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+            <FaTrashAlt size={20} className="text-red-500" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900">Delete Account</h3>
+            <p className="text-sm text-gray-500">Permanently delete your account and all associated data</p>
+          </div>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Once you delete your account, there is no going back. Please be certain.
+        </p>
         <button
-          type="submit"
-          className="border border-[#af1818] text-[#af1818] rounded-md py-2 px-2.5 flex justify-center items-center gap-3"
-          onClick={handleDeleteModal}
+          type="button"
+          onClick={() => setShowDeleteAccountModal(true)}
+          className="px-5 py-2.5 border border-red-200 text-red-600 font-semibold rounded-xl hover:bg-red-50 transition-colors"
         >
           Delete my Account
         </button>
       </div>
+
       {showDeleteAccountModal && (
         <DeleteAccountModal setDeleteAccountModal={setShowDeleteAccountModal} />
       )}

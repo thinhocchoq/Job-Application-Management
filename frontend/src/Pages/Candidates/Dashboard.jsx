@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom"; 
 import { applicationsApi, usersApi } from "../../lib/api";
 import TopBarDashboard from "../../Components/TopBarDashboard";
-import { LuUserCircle2, LuSearch, LuBookOpen } from "react-icons/lu";
+import { FaUserCircle, FaSearch, FaBookOpen } from "react-icons/fa";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { formatMessageTime  } from '../../utils/format';
 
@@ -69,7 +69,7 @@ const Dashboard = () => {
       {/* --- HEADER --- */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {getGreeting()}, {userName.split(' ')[0] || "User"}
+          {getGreeting()}, {(userName || "").split(" ")[0] || "User"}
         </h1>
         <p className="text-gray-500">Here is what's happening with your job search today.</p>
         
@@ -153,7 +153,7 @@ const Dashboard = () => {
             ) : (
               <div className="bg-white p-6 rounded-2xl border border-dashed border-gray-200 text-center">
                 <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
-                  <LuSearch className="w-5 h-5" />
+                  <FaSearch className="w-5 h-5" />
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2">No recent applications yet</h3>
                 <p className="text-sm text-gray-500 mb-4">Your latest job applications will appear here once you start applying.</p>
@@ -174,7 +174,7 @@ const Dashboard = () => {
             {/* Card 1: Complete Profile */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-[#188155]">
               <div className="w-8 h-8 text-[#188155] mb-3">
-                <LuUserCircle2 className="w-full h-full" />
+                <FaUserCircle className="w-full h-full" />
               </div>
               <h3 className="font-bold text-gray-900 mb-2">Complete your profile</h3>
               <p className="text-sm text-gray-500 mb-4 leading-relaxed">Your profile is 85% complete. Add your latest project to stand out.</p>
@@ -186,7 +186,7 @@ const Dashboard = () => {
             {/* Card 2: Find Jobs */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-[#188155]">
               <div className="w-8 h-8 text-[#188155] mb-3">
-                <LuSearch className="w-full h-full" />
+                <FaSearch className="w-full h-full" />
               </div>
               <h3 className="font-bold text-gray-900 mb-2">Find new jobs</h3>
               <p className="text-sm text-gray-500 mb-4 leading-relaxed">New roles matching your skillset were posted 2 hours ago.</p>
@@ -198,7 +198,7 @@ const Dashboard = () => {
             {/* Card 3: Interview Resources */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-gray-700">
               <div className="w-8 h-8 text-gray-700 mb-3">
-                <LuBookOpen className="w-full h-full" />
+                <FaBookOpen className="w-full h-full" />
               </div>
               <h3 className="font-bold text-gray-900 mb-2">Interview resources</h3>
               <p className="text-sm text-gray-500 mb-4 leading-relaxed">Master the technical interview with our curated guide.</p>

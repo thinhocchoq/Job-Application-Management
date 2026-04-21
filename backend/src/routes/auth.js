@@ -28,8 +28,8 @@ router.post("/signup", async (req, res) => {
     return res.status(400).json({ message: "Name, email and password are required" });
   }
 
-  if (password.length < 5) {
-    return res.status(400).json({ message: "Password must be at least 5 characters" });
+  if (password.length < 8) {
+    return res.status(400).json({ message: "Password must be at least 8 characters" });
   }
 
   const selectedRole = ALLOWED_ROLES.has(role) ? role : "candidate";
@@ -154,6 +154,33 @@ router.post("/login", async (req, res) => {
     return res.json({ token, user });
   } catch (error) {
     return res.status(500).json({ message: "Login failed", detail: error.message });
+  }
+});
+
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email || typeof email !== "string" || email.trim().length === 0) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  const loginName = normalizeEmail(email);
+
+  try {
+    const result = await pool.query(
+      "SELECT id FROM users WHERE login_name = $1 LIMIT 1",
+      [loginName]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(200).json({ message: "If an account with that email exists, a password reset link has been sent." });
+    }
+
+    // In a production app, you would send an email here.
+    // For now, we just acknowledge the request to prevent email enumeration.
+    return res.status(200).json({ message: "If an account with that email exists, a password reset link has been sent." });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to process request", detail: error.message });
   }
 });
 

@@ -1,138 +1,214 @@
-import React from 'react';
+import React, { useState } from "react";
+import { FaTimes, FaMapMarker, FaDollarSign, FaBriefcase, FaRegCalendarAlt, FaBookOpen, FaCheck } from "react-icons/fa";
+import { jobPostsApi } from "../../lib/api";
 
-const CreateJob = ({ isOpen, onClose }) => {
+const CreateJob = ({ isOpen, onClose, onSuccess }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    title: "",
+    location: "",
+    salary: "",
+    employment_type: "Full-time",
+    experience: "",
+    deadline: "",
+    industry: "",
+    description: "",
+    responsibilities: "",
+    requirements: "",
+  });
+
   if (!isOpen) return null;
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim()) {
+      setError("Job title is required.");
+      return;
+    }
+    setIsSubmitting(true);
+    setError("");
+    try {
+      await jobPostsApi.create(form);
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.message || "Failed to create job");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 lg:p-8">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">        
-        {/* Body (Form) có thể cuộn */}
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh] relative overflow-hidden">
-          <button 
-            onClick={onClose} 
-            className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors z-10"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+          <h2 className="text-xl font-bold text-gray-900">Create New Job Posting</h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+            <FaTimes size={20} />
           </button>
-          <div className="p-8 overflow-y-auto space-y-8 flex-1 custom-scrollbar">
-            {/* Header */}
-            <div className="mb-2 pr-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Đăng tin tuyển dụng mới</h2>
-            </div>
-
-            {/* Section 1: Thông tin cơ bản */}
-            <div className="bg-[#f8f9fa] rounded-2xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Thông tin cơ bản</h3>
-              </div>
-
-              <div className="space-y-5">
-                {/* Tiêu đề */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Tiêu đề công việc</label>
-                  <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 transition-all">
-                    <input type="text" placeholder="Ví dụ: Senior Product Designer" className="w-full outline-none bg-transparent text-gray-800 placeholder-gray-400" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Địa điểm */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Địa điểm làm việc</label>
-                    <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500">
-                      <svg className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                      <input type="text" defaultValue="Thành phố Hồ Chí Minh, Việt Nam" className="w-full outline-none bg-transparent text-gray-800" />
-                    </div>
-                  </div>
-                  {/* Hình thức */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Hình thức làm việc</label>
-                    <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500">
-                      <svg className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                      <select className="w-full outline-none bg-transparent text-gray-800 appearance-none cursor-pointer">
-                        <option>Toàn thời gian (Full-time)</option>
-                        <option>Bán thời gian (Part-time)</option>
-                        <option>Remote</option>
-                      </select>
-                    </div>
-                  </div>
-                  {/* Mức lương */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Mức lương (Tháng)</label>
-                    <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500">
-                      <svg className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                      <input type="text" placeholder="Ví dụ: 20,000,000 - 35,000,000 VNĐ" className="w-full outline-none bg-transparent text-gray-800" />
-                    </div>
-                  </div>
-                  {/* Kinh nghiệm */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Kinh nghiệm yêu cầu</label>
-                    <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500">
-                      <svg className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
-                        <input type="text" placeholder="Kinh nghiệm" className="w-full outline-none bg-transparent text-gray-800" />
-                    </div>
-                  </div>
-                  {/* Hạn chót */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Hạn chót ứng tuyển</label>
-                    <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500">
-                      <svg className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                      <input type="date" placeholder="mm/dd/yyyy" className="w-full outline-none bg-transparent text-gray-800" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 2: Nội dung chi tiết */}
-            <div className="bg-[#f8f9fa] rounded-2xl p-6 relative">
-              
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Nội dung chi tiết</h3>
-              </div>
-
-              <div className="space-y-6">
-                {/* Mô tả */}
-                <div>
-                  <label className="flex items-center text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Mô tả công việc
-                  </label>
-                  <textarea rows="4" placeholder="Mô tả tổng quan về vai trò này tại công ty..." className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
-                </div>
-                
-                {/* Trách nhiệm */}
-                <div>
-                  <label className="flex items-center text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Trách nhiệm công việc
-                  </label>
-                  <textarea rows="4" placeholder="Nêu rõ các nhiệm vụ hằng ngày ứng viên sẽ đảm nhận..." className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
-                </div>
-
-                {/* Yêu cầu */}
-                <div>
-                  <label className="flex items-center text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
-                    Yêu cầu ứng viên
-                  </label>
-                  <textarea rows="4" placeholder="Kỹ năng cứng, kỹ năng mềm và các tố chất cần thiết..." className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button className="px-6 py-2.5 bg-white text-blue-600 font-semibold rounded-full hover:bg-gray-50 transition-colors shadow-sm border border-transparent">
-                Lưu nháp
-              </button>
-              <button className="flex-1 md:flex-none flex items-center justify-center px-8 py-2.5 font-semibold rounded-full transition shadow-sm text-white bg-emerald-500 hover:bg-emerald-600">
-                Đăng tuyển ngay
-              </button>
-            </div>        
-          </div>
         </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Basic Info */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Basic Information</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Job Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={form.title}
+                    onChange={handleChange}
+                    placeholder="e.g. Senior Frontend Developer"
+                    required
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      <span className="flex items-center gap-1.5"><FaMapMarker size={14} /> Location</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="location"
+                      value={form.location}
+                      onChange={handleChange}
+                      placeholder="e.g. Ho Chi Minh City, Vietnam"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      <span className="flex items-center gap-1.5"><FaDollarSign size={14} /> Salary</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="salary"
+                      value={form.salary}
+                      onChange={handleChange}
+                      placeholder="e.g. $50,000 - $80,000 / year"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      <span className="flex items-center gap-1.5"><FaBriefcase size={14} /> Employment Type</span>
+                    </label>
+                    <select
+                      name="employment_type"
+                      value={form.employment_type}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all bg-white"
+                    >
+                      <option value="Full-time">Full-time</option>
+                      <option value="Part-time">Part-time</option>
+                      <option value="Contract">Contract</option>
+                      <option value="Internship">Internship</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      <span className="flex items-center gap-1.5"><FaRegCalendarAlt size={14} /> Application Deadline</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="deadline"
+                      value={form.deadline}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Job Details</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <span className="flex items-center gap-1.5"><FaBookOpen size={14} /> Description</span>
+                  </label>
+                  <textarea
+                    name="description"
+                    value={form.description}
+                    onChange={handleChange}
+                    rows="4"
+                    placeholder="Describe the role, team, and company culture..."
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <span className="flex items-center gap-1.5"><FaCheck size={14} /> Responsibilities</span>
+                  </label>
+                  <textarea
+                    name="responsibilities"
+                    value={form.responsibilities}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="List key responsibilities and daily tasks..."
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Requirements
+                  </label>
+                  <textarea
+                    name="requirements"
+                    value={form.requirements}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="List required skills, qualifications, and experience..."
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 shrink-0 bg-gray-50">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isSubmitting ? "Creating..." : "Create Job"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

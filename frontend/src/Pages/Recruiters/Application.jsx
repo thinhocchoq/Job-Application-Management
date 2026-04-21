@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ApplicationDetail from './ApplicationDetail';
-import { applicationsApi, jobPostsApi } from '../../lib/api';
+import { applicationsApi, jobPostsApi, usersApi } from '../../lib/api';
+import TopBarRecruiter from "../../Components/TopBarRecruiter";
 
 const stageMetaByStatus = {
   accepted: {
@@ -107,6 +108,9 @@ const Application = () => {
   const [selectedJobId, setSelectedJobId] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -120,10 +124,15 @@ const Application = () => {
           jobPostsApi.listMine(),
         ]);
 
+        const profile = await usersApi.me();
+        setUserName(profile.name || "");
+        setUserEmail(profile.email || "");
+
         if (isMounted) {
           setApplications(Array.isArray(applicationsResult) ? applicationsResult : []);
           setJobOptions(Array.isArray(jobsResult) ? jobsResult : []);
         }
+
       } catch (loadError) {
         if (isMounted) {
           setApplications([]);
@@ -202,182 +211,190 @@ const Application = () => {
 
   // --- Render Màn hình Danh sách ---
   return (
-    <div className="flex-1 bg-gray-50/50 p-8 min-h-screen">
-      
+    <div className="min-h-screen bg-gray-50">
+      <TopBarRecruiter 
+        userName={userName} 
+        userEmail={userEmail}
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search jobs by title, company, location..."
+      />
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Job Applications</h1>
-          <p className="text-gray-500 mt-1">Streamlining the journey from application to hire.</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg flex items-center gap-2 hover:bg-gray-200">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
-            Configure Funnel
-          </button>
-          <button className="px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg flex items-center gap-2 hover:bg-emerald-700 shadow-sm">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-            Bulk Import CVs
-          </button>
-        </div>
-      </div>
-
-      {/* Metric Cards */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Pending Review</p>
-          <div className="flex items-baseline gap-3">
-            <span className="text-4xl font-extrabold text-gray-900">{metrics.pendingReview}</span>
-            <span className="text-sm font-semibold text-orange-500">{metrics.pendingReview > 0 ? 'Action Required' : 'Up to date'}</span>
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-6 pb-12">
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Job Applications</h1>
+            <p className="text-gray-500 mt-1">Streamlining the journey from application to hire.</p>
+          </div>
+          <div className="flex gap-3">
+            <button className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg flex items-center gap-2 hover:bg-gray-200">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+              Configure Funnel
+            </button>
+            <button className="px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg flex items-center gap-2 hover:bg-emerald-700 shadow-sm">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              Bulk Import CVs
+            </button>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Initial Screening</p>
-          <span className="text-4xl font-extrabold text-gray-900">{metrics.initialScreening}</span>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Interview Stage</p>
-          <span className="text-4xl font-extrabold text-gray-900">{metrics.interviewStage}</span>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Offers Out</p>
-          <span className="text-4xl font-extrabold text-gray-900">{metrics.offersOut}</span>
-        </div>
-      </div>
 
-      {/* Toolbar (Filters & View Toggle) */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-4">
-          <div className="flex items-center gap-3 text-sm font-medium text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-lg">
-            <span>Active Job:</span>
-            <select
-              value={selectedJobId}
-              onChange={(event) => setSelectedJobId(event.target.value)}
-              className="bg-transparent text-emerald-700 font-semibold outline-none cursor-pointer"
-            >
-              <option value="all">All Jobs</option>
-              {jobOptions.map((job) => (
-                <option key={job.id} value={job.id}>
-                  {job.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-lg cursor-pointer">
-            Funnel Stage: <span className="text-emerald-700">All Stages</span>
-            <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-          </div>
-        </div>
-      </div>
-
-      {/* Data Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {loading ? (
-          <div className="px-6 py-10 text-center text-gray-500">Loading applications...</div>
-        ) : error ? (
-          <div className="px-6 py-10 text-center text-red-500">{error}</div>
-        ) : (
-        <table className="w-full text-left">
-          <thead className="bg-white border-b border-gray-100">
-            <tr className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              <th className="px-6 py-5">Candidate & Application</th>
-              <th className="px-6 py-5">Applied Job</th>
-              <th className="px-6 py-5">Recruitment Funnel Stage</th>
-              <th className="px-6 py-5">Match Score</th>
-              <th className="px-6 py-5 text-right">Workflow Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {displayApplications.map((app) => (
-              <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
-                
-                {/* Cột 1: Thông tin ứng viên */}
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-4">
-                    <img src={app.avatar} alt="avatar" className="w-12 h-12 rounded-lg bg-gray-100 border border-gray-200" />
-                    <div>
-                      <p className="font-bold text-gray-900">{app.name}</p>
-                      <p className="text-xs font-medium text-gray-400 mt-0.5">REF: {app.ref}</p>
-                    </div>
-                  </div>
-                </td>
-
-                {/* Cột 2: Vị trí ứng tuyển */}
-                <td className="px-6 py-5">
-                  <p className="font-bold text-gray-900">{app.jobTitle}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{app.department}</p>
-                </td>
-
-                {/* Cột 3: Trạng thái (Stage) */}
-                <td className="px-6 py-5">
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${app.stageColor}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${app.stageDot}`}></span>
-                    {app.stage}
-                  </span>
-                  <p className={`text-xs mt-2 font-medium ${app.subtextColor || 'text-gray-500'}`}>{app.subtext}</p>
-                </td>
-
-                {/* Cột 4: Mức độ phù hợp (Match Score) */}
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${app.matchScore >= 80 ? 'bg-emerald-600' : app.matchScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`} 
-                        style={{ width: `${app.matchScore}%` }}
-                      ></div>
-                    </div>
-                    <span className={`text-sm font-bold ${app.matchScore >= 80 ? 'text-emerald-700' : 'text-gray-600'}`}>
-                      {app.matchScore}%
-                    </span>
-                  </div>
-                </td>
-
-                {/* Cột 5: Hành động */}
-                <td className="px-6 py-5 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button 
-                      onClick={() => setSelectedApplication(app)} // Kích hoạt sự kiện mở chi tiết
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                    >
-                      {app.secondaryAction}
-                    </button>
-                    {app.primaryAction !== '-' ? (
-                       <button className="px-4 py-2 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm transition-colors">
-                         {app.primaryAction}
-                       </button>
-                    ) : (
-                       <button className="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                         {app.primaryAction}
-                       </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {displayApplications.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
-                  No applications found for your job posts yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        )}
-
-        {/* Footer / Pagination */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-          {totalPages > 1 && (
-            <div className="flex gap-1.5">
-              <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 text-gray-400">&lt;</button>
-              <button className="w-8 h-8 flex items-center justify-center bg-emerald-700 text-white rounded font-medium shadow-sm">1</button>
-              <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 font-medium">2</button>
-              <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 font-medium">3</button>
-              <span className="w-8 h-8 flex items-center justify-center text-gray-400">...</span>
-              <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 text-gray-400">&gt;</button>
+        {/* Metric Cards */}
+        <div className="grid grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Pending Review</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-extrabold text-gray-900">{metrics.pendingReview}</span>
+              <span className="text-sm font-semibold text-orange-500">{metrics.pendingReview > 0 ? 'Action Required' : 'Up to date'}</span>
             </div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Initial Screening</p>
+            <span className="text-4xl font-extrabold text-gray-900">{metrics.initialScreening}</span>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Interview Stage</p>
+            <span className="text-4xl font-extrabold text-gray-900">{metrics.interviewStage}</span>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Offers Out</p>
+            <span className="text-4xl font-extrabold text-gray-900">{metrics.offersOut}</span>
+          </div>
+        </div>
+
+        {/* Toolbar (Filters & View Toggle) */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex gap-4">
+            <div className="flex items-center gap-3 text-sm font-medium text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-lg">
+              <span>Active Job:</span>
+              <select
+                value={selectedJobId}
+                onChange={(event) => setSelectedJobId(event.target.value)}
+                className="bg-transparent text-emerald-700 font-semibold outline-none cursor-pointer"
+              >
+                <option value="all">All Jobs</option>
+                {jobOptions.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-lg cursor-pointer">
+              Funnel Stage: <span className="text-emerald-700">All Stages</span>
+              <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {loading ? (
+            <div className="px-6 py-10 text-center text-gray-500">Loading applications...</div>
+          ) : error ? (
+            <div className="px-6 py-10 text-center text-red-500">{error}</div>
+          ) : (
+          <table className="w-full text-left">
+            <thead className="bg-white border-b border-gray-100">
+              <tr className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-5">Candidate & Application</th>
+                <th className="px-6 py-5">Applied Job</th>
+                <th className="px-6 py-5">Recruitment Funnel Stage</th>
+                <th className="px-6 py-5">Match Score</th>
+                <th className="px-6 py-5 text-right">Workflow Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {displayApplications.map((app) => (
+                <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
+                  
+                  {/* Cột 1: Thông tin ứng viên */}
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-4">
+                      <img src={app.avatar} alt="avatar" className="w-12 h-12 rounded-lg bg-gray-100 border border-gray-200" />
+                      <div>
+                        <p className="font-bold text-gray-900">{app.name}</p>
+                        <p className="text-xs font-medium text-gray-400 mt-0.5">REF: {app.ref}</p>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Cột 2: Vị trí ứng tuyển */}
+                  <td className="px-6 py-5">
+                    <p className="font-bold text-gray-900">{app.jobTitle}</p>
+                    <p className="text-sm text-gray-500 mt-0.5">{app.department}</p>
+                  </td>
+
+                  {/* Cột 3: Trạng thái (Stage) */}
+                  <td className="px-6 py-5">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${app.stageColor}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${app.stageDot}`}></span>
+                      {app.stage}
+                    </span>
+                    <p className={`text-xs mt-2 font-medium ${app.subtextColor || 'text-gray-500'}`}>{app.subtext}</p>
+                  </td>
+
+                  {/* Cột 4: Mức độ phù hợp (Match Score) */}
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${app.matchScore >= 80 ? 'bg-emerald-600' : app.matchScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`} 
+                          style={{ width: `${app.matchScore}%` }}
+                        ></div>
+                      </div>
+                      <span className={`text-sm font-bold ${app.matchScore >= 80 ? 'text-emerald-700' : 'text-gray-600'}`}>
+                        {app.matchScore}%
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Cột 5: Hành động */}
+                  <td className="px-6 py-5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => setSelectedApplication(app)} // Kích hoạt sự kiện mở chi tiết
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        {app.secondaryAction}
+                      </button>
+                      {app.primaryAction !== '-' ? (
+                        <button className="px-4 py-2 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm transition-colors">
+                          {app.primaryAction}
+                        </button>
+                      ) : (
+                        <button className="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                          {app.primaryAction}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {displayApplications.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+                    No applications found for your job posts yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
           )}
+
+          {/* Footer / Pagination */}
+          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+            {totalPages > 1 && (
+              <div className="flex gap-1.5">
+                <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 text-gray-400">&lt;</button>
+                <button className="w-8 h-8 flex items-center justify-center bg-emerald-700 text-white rounded font-medium shadow-sm">1</button>
+                <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 font-medium">2</button>
+                <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 font-medium">3</button>
+                <span className="w-8 h-8 flex items-center justify-center text-gray-400">...</span>
+                <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 text-gray-400">&gt;</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

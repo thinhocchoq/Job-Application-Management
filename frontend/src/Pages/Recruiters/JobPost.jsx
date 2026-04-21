@@ -5,7 +5,7 @@ import {
   FaEye, FaFilter, FaArrowsAltV, FaTimes, FaCheck
 } from "react-icons/fa";
 import { jobPostsApi, usersApi } from "../../lib/api";
-import TopBarDashboard from "../../Components/TopBarDashboard";
+import TopBarRecruiter from "../../Components/TopBarRecruiter";
 import CreateJob from "./CreateJob";
 import EditJob from "./EditJob";
 
@@ -73,7 +73,9 @@ const JobPost = () => {
         const profile = await usersApi.me();
         setUserName(profile.name || "");
         setUserEmail(profile.email || "");
-      } catch (_) {}
+      } catch (err) {
+        setError(err.message || "Failed to load dashboard data");
+      }
     };
     loadData();
   }, []);
@@ -180,9 +182,15 @@ const JobPost = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <TopBarDashboard userName={userName} userEmail={userEmail} />
+      <TopBarRecruiter 
+        userName={userName} 
+        userEmail={userEmail}
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search jobs by title, company, location..."
+      />
 
-      <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-4 pb-12">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-6 pb-12">
         {/* --- HEADER --- */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -224,40 +232,20 @@ const JobPost = () => {
           </div>
         </div>
 
-        {/* --- SEARCH & FILTER BAR --- */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
-          <div className="flex items-center gap-3 p-4">
-            <div className="flex-1 relative">
-              <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="search"
-                placeholder="Search jobs by title, company, location..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <FaTimes size={16} />
-                </button>
-              )}
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                showFilters ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <FaFilter size={16} />
-              Filter
-            </button>
-          </div>
+        {/* --- FILTER BAR --- */}
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+              showFilters ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <FaFilter size={16} />
+            Filter
+          </button>
 
           {showFilters && (
-            <div className="px-4 pb-4 border-t border-gray-100 pt-3 flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Status:</span>
               {["all", "active", "closed"].map((s) => (
                 <button

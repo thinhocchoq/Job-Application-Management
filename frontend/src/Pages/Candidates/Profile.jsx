@@ -7,9 +7,9 @@ import {
   MdPictureAsPdf,
   MdClose
 } from "react-icons/md";
-import { usersApi } from "../lib/api";
-import ProfileTopBar from "../Components/ProfileTopBar";
-import { calculateAge } from '../utils/format';
+import { usersApi } from "../../lib/api";
+import ProfileTopBar from "../../Components/ProfileTopBar";
+import { calculateAge } from '../../utils/format';
 
 const Profile = () => {
   const [editingName, setEditingName] = useState(false);
@@ -47,7 +47,6 @@ const Profile = () => {
         const response = await usersApi.me();
         setUserName(response.name);
         setUserEmail(response.email);
-        setJobs(await jobPostsApi.list());
       } catch (error) {}
     };
     fetchUserData();

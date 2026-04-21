@@ -8,7 +8,8 @@ import Signup from "./Pages/Auth/Signup";
 import Dashboard from "./Pages/Candidates/Dashboard";
 import Applications from "./Pages/Candidates/Applications";
 import Jobsearch from "./Pages/Candidates/Jobsearch";
-import Profile from "./Pages/Profile";
+import CandidateProfile from "./Pages/Candidates/Profile";
+import RecruiterProfile from "./Pages/Recruiters/Profile";
 import Settings from "./Pages/Settings";
 import RecruiterDashboard from "./Pages/Recruiters/RecruiterDashboard";
 import JobPost from "./Pages/Recruiters/JobPost";
@@ -37,13 +38,13 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="applications" element={<Applications />} />
           <Route path="job" element={<Jobsearch />} />
-          <Route path="profile" element={<Profile />} />
+          <Route path="profile" element={<CandidateProfile />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="/recruiter" element={<DashboardLayout allowedRole="recruiter" />}>
           <Route index element={<RecruiterDashboard />} />
           <Route path="dashboard" element={<RecruiterDashboard />} />
-          <Route path="profile" element={<Profile />} />
+          <Route path="profile" element={<RecruiterProfile />} />
           <Route path="settings" element={<Settings />} />
           <Route path="job" element={<JobPost />} />
           <Route path="application" element={<Application/>} />

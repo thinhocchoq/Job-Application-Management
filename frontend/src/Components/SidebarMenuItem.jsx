@@ -38,21 +38,21 @@ const recruiterMenu = [
   },
   {
     id: 1,
-    label: "Profile",
-    icon: <BsFillPersonFill />,
-    path: "profile",
-  },
-  {
-    id: 2,
     label: "Job Posts",
     icon: <BsBriefcaseFill />,
     path: "job",
   },
   {
-    id: 3,
+    id: 2,
     label: "Application",
     icon: <BsPeople />,
     path: "application",
+  },
+  {
+    id: 3,
+    label: "Profile",
+    icon: <BsFillPersonFill />,
+    path: "profile",
   }
 ];
 

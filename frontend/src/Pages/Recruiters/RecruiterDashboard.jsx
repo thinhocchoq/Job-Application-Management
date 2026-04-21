@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FaBriefcase, FaUsers, FaCalendar, FaCheckCircle, FaPlus } from "react-icons/fa";
+import { FaBriefcase, FaUsers, FaCalendar, FaCheckCircle } from "react-icons/fa";
 import { jobPostsApi, applicationsApi, usersApi } from "../../lib/api";
-import TopBarDashboard from "../../Components/TopBarDashboard";
+import TopBarRecruiter from "../../Components/TopBarRecruiter";
 
 const StatCard = ({ title, value, subtitle, icon: Icon, color = "emerald" }) => {
   const colorMap = {
@@ -48,11 +48,13 @@ const RecruiterDashboard = () => {
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [showAppStats, setShowAppStats] = useState(false);
 
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -97,6 +99,58 @@ const RecruiterDashboard = () => {
       .slice(0, 5);
   }, [applications]);
 
+  const applicationStatusStats = useMemo(() => {
+    const counts = {
+      pending: 0,
+      interview: 0,
+      offered: 0,
+      rejected: 0,
+    };
+
+    applications.forEach((app) => {
+      const status = (app.status || "").toLowerCase();
+      if (status === "accepted" || status === "offered") {
+        counts.offered += 1;
+        return;
+      }
+      if (status === "reviewed" || status === "interview") {
+        counts.interview += 1;
+        return;
+      }
+      if (status === "rejected") {
+        counts.rejected += 1;
+        return;
+      }
+      counts.pending += 1;
+    });
+
+    const total = applications.length;
+
+    const items = [
+      { key: "pending", label: "Pending", shortLabel: "P", value: counts.pending, barClass: "bg-yellow-400", color: "#facc15" },
+      { key: "interview", label: "Interview", shortLabel: "I", value: counts.interview, barClass: "bg-blue-500", color: "#3b82f6" },
+      { key: "offered", label: "Offered", shortLabel: "O", value: counts.offered, barClass: "bg-emerald-500", color: "#10b981" },
+      { key: "rejected", label: "Rejected", shortLabel: "R", value: counts.rejected, barClass: "bg-red-500", color: "#ef4444" },
+    ];
+
+    const maxValue = Math.max(1, ...items.map((item) => item.value));
+
+    let currentPercent = 0;
+    const conicStops = items.map((item) => {
+      const start = currentPercent;
+      const percent = total > 0 ? (item.value / total) * 100 : 0;
+      const end = start + percent;
+      currentPercent = end;
+      return `${item.color} ${start}% ${end}%`;
+    });
+
+    const conicGradient = total > 0
+      ? `conic-gradient(${conicStops.join(",")})`
+      : "conic-gradient(#e5e7eb 0% 100%)";
+
+    return { items, maxValue, total, conicGradient };
+  }, [applications]);
+
   const getStatusBadge = (status) => {
     const s = (status || "").toLowerCase();
     if (s === "accepted" || s === "offered")
@@ -111,8 +165,8 @@ const RecruiterDashboard = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <TopBarDashboard userName="" userEmail="" />
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-4 pb-12">
+        <TopBarRecruiter userName="" userEmail="" />
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-6 pb-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="bg-white p-6 rounded-2xl border animate-pulse">
@@ -128,9 +182,13 @@ const RecruiterDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <TopBarDashboard userName={userName} userEmail={userEmail} />
+      <TopBarRecruiter userName={userName} 
+                       userEmail={userEmail}
+                       searchValue={searchTerm}
+                      onSearchChange={setSearchTerm}
+                      searchPlaceholder="Search jobs by title, company, location..." />
 
-      <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-4 pb-12">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-6 pb-12">
         {/* --- HEADER --- */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -139,13 +197,6 @@ const RecruiterDashboard = () => {
               Welcome back, {userName || "there"}. Here's what's happening today.
             </p>
           </div>
-          <button
-            onClick={() => navigate("/recruiter/job")}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
-          >
-            <FaPlus size={18} />
-            Create Job
-          </button>
         </div>
 
         {/* --- ERROR --- */}
@@ -193,13 +244,83 @@ const RecruiterDashboard = () => {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold text-gray-900">Recent Applications</h2>
-              <Link
-                to="/recruiter/application"
-                className="text-sm font-semibold text-emerald-600 hover:underline"
-              >
-                View All
-              </Link>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAppStats((prev) => !prev)}
+                  className="text-sm font-semibold text-gray-600 hover:text-emerald-700"
+                >
+                  {showAppStats ? "Hide Stats" : "Show Stats"}
+                </button>
+                <Link
+                  to="/recruiter/application"
+                  className="text-sm font-semibold text-emerald-600 hover:underline"
+                >
+                  View All
+                </Link>
+              </div>
             </div>
+
+            {showAppStats && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-gray-800">Application Status Overview</h3>
+                  <span className="text-xs text-gray-500">{applicationStatusStats.total} total</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="rounded-xl border border-gray-100 p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Pie Chart</p>
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-28 h-28 rounded-full relative shrink-0"
+                        style={{ background: applicationStatusStats.conicGradient }}
+                      >
+                        <div className="absolute inset-[18px] bg-white rounded-full border border-gray-100 flex items-center justify-center">
+                          <span className="text-xs font-semibold text-gray-600">{applicationStatusStats.total}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 w-full">
+                        {applicationStatusStats.items.map((item) => (
+                          <div key={item.key} className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                              <span className="text-xs text-gray-600">{item.label}</span>
+                            </div>
+                            <span className="text-xs font-semibold text-gray-800">{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-gray-100 p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Vertical Bar</p>
+                    <div className="h-36 flex items-end justify-between gap-3 border-b border-gray-100 pb-2">
+                      {applicationStatusStats.items.map((item) => (
+                        <div key={item.key} className="flex-1 flex flex-col items-center justify-end gap-2">
+                          <span className="text-[11px] font-semibold text-gray-700">{item.value}</span>
+                          <div className="w-full max-w-[42px] h-24 bg-gray-100 rounded-t-md overflow-hidden flex items-end">
+                            <div
+                              className={`w-full ${item.barClass}`}
+                              style={{ height: `${(item.value / applicationStatusStats.maxValue) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-[11px] text-gray-500 font-medium">{item.shortLabel}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
+                      <span>P: Pending</span>
+                      <span>I: Interview</span>
+                      <span>O: Offered</span>
+                      <span>R: Rejected</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {recentApplications.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">

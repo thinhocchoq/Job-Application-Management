@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   FaBriefcase, FaSearch, FaMapMarker, FaClock, FaDollarSign,

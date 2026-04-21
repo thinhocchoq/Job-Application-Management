@@ -7,9 +7,9 @@ import {
   MdPictureAsPdf,
   MdClose
 } from "react-icons/md";
-import { usersApi } from "../lib/api";
-import ProfileTopBar from "../Components/ProfileTopBar";
-import { calculateAge } from '../utils/format';
+import { usersApi } from "../../lib/api";
+import ProfileTopBar from "../../Components/ProfileTopBar";
+import { calculateAge } from '../../utils/format';
 
 const Profile = () => {
   const [editingName, setEditingName] = useState(false);
@@ -47,7 +47,6 @@ const Profile = () => {
         const response = await usersApi.me();
         setUserName(response.name);
         setUserEmail(response.email);
-        setJobs(await jobPostsApi.list());
       } catch (error) {}
     };
     fetchUserData();
@@ -203,7 +202,7 @@ const Profile = () => {
                   />
                 ) : (
                   <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                    {name || "Alex Rivera"} <span className="text-gray-400 font-medium text-2xl md:text-3xl hidden md:inline">• Senior Product Designer</span>
+                    {name || "Alex Rivera"} <span className="text-gray-400 font-medium text-2xl md:text-3xl hidden md:inline">• Recruiter</span>
                   </h1>
                 )}
                 
@@ -373,28 +372,28 @@ const Profile = () => {
             {/* JOB PREFERENCES */}
             <div className="bg-[#f7f9fa] rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-[#0b3b4d]">Job Preferences</h2>
+                <h2 className="text-xl font-bold text-[#0b3b4d]">Organization</h2>
                 <ActionButton isEditing={editingJobPreferences} onClick={() => handleEditToggle("jobPreferences")} />
               </div>
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-50">
-                  <span className="text-gray-500 text-sm font-medium">Desired Salary</span>
-                  <span className="font-bold text-gray-900">$180k - $220k</span>
+                  <span className="text-gray-500 text-sm font-medium">Company Name</span>
+                  <span className="font-bold text-gray-900">{jobType || "Your Company"}</span>
                 </div>
                 
                 <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-50">
-                  <span className="text-gray-500 text-sm font-medium">Job Type</span>
+                  <span className="text-gray-500 text-sm font-medium">Department</span>
                   {editingJobPreferences ? (
                     <input 
                       type="text" 
                       value={jobType} 
                       onChange={(e) => setJobType(e.target.value)} 
                       className="text-right border-b border-gray-300 outline-none font-bold text-gray-900 w-1/2 focus:border-[#0b3b4d]" 
-                      placeholder="e.g. Full-time • Remote"
+                      placeholder="e.g. Recruitment"
                     />
                   ) : (
-                    <span className="font-bold text-gray-900">{jobType || "Full-time • Remote"}</span>
+                    <span className="font-bold text-gray-900">{jobType || "Recruitment"}</span>
                   )}
                 </div>
               </div>

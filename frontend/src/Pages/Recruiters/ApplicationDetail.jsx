@@ -181,16 +181,6 @@ const ApplicationDetail = ({ onBack, candidate }) => {
             <FaArrowLeft size={18} />
             Back to Applications
           </button>
-          <div className="flex gap-3">
-            <button
-              onClick={handleDownloadCv}
-              disabled={!canPreviewCv}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl bg-white text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors disabled:opacity-40"
-            >
-              <FaDownload size={16} />
-              Download CV
-            </button>
-          </div>
         </div>
 
         {/* Error */}
@@ -207,13 +197,6 @@ const ApplicationDetail = ({ onBack, candidate }) => {
             <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
               <h3 className="font-semibold text-gray-700">CV: {cvFileName}</h3>
               <div className="flex gap-2">
-                <button
-                  onClick={handlePreviewCv}
-                  disabled={!canPreviewCv || previewLoading}
-                  className="text-sm text-emerald-600 hover:underline font-medium disabled:text-gray-400 disabled:no-underline"
-                >
-                  {previewLoading ? 'Loading...' : 'Preview'}
-                </button>
                 <button
                   onClick={handleDownloadCv}
                   disabled={!canPreviewCv}

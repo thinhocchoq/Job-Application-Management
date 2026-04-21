@@ -21,14 +21,25 @@ const SideBar = ({ role = "candidate" }) => {
   };
 
   const findPageTitle = () => {
-    const currentItem = menuItems.find((item) =>
-      location.pathname.endsWith(item.path)
-    );
+    const currentPath = location.pathname.split("/").filter(Boolean).pop() || "";
+    const currentItem = menuItems.find((item) => {
+      return currentPath === item.path ||
+        currentPath.includes(item.path) ||
+        (item.path === "dashboard" && (currentPath === "" || currentPath === "candidate" || currentPath === "recruiter"));
+    });
     if (currentItem) {
       setPageTitle(currentItem.label);
     } else {
-      setPageTitle("");
+      setPageTitle(currentPath.charAt(0).toUpperCase() + currentPath.slice(1));
     }
+  };
+
+  const isActive = (itemPath) => {
+    const currentPath = location.pathname.split("/").filter(Boolean).pop() || "";
+    if (itemPath === "dashboard") {
+      return currentPath === "" || currentPath === "candidate" || currentPath === "recruiter" || currentPath === "dashboard";
+    }
+    return currentPath === itemPath;
   };
 
   useEffect(() => {
@@ -38,19 +49,19 @@ const SideBar = ({ role = "candidate" }) => {
   return (
     <div>
       <nav
-        className={`px-5 py-3 fixed z-50 w-full lg:hidden bg-[#19211D] text-white ${
+        className={`px-5 py-3 fixed z-50 w-full lg:hidden transition-all duration-300 ${
           openSidebar ? "-translate-y-full" : "translate-x-0"
-        }`}
+        } bg-[#19211D] text-white`}
       >
         <div className="flex gap-3 items-center">
           <button
             className="text-xl lg:hidden"
-            title="Expand Sidebar"
+            title="Toggle Menu"
             onClick={toggleMenu}
           >
             <BsLayoutSidebarInset className="" />
           </button>
-          <h3 className="md:text-lg">{pageTitle}</h3>
+          <h3 className="md:text-lg font-semibold">{pageTitle}</h3>
         </div>
       </nav>
 
@@ -58,18 +69,17 @@ const SideBar = ({ role = "candidate" }) => {
         <div
           className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={toggleMenu}
-        ></div>
+        />
       )}
 
       <div
-        className={`fixed h-full top-0 left-0 bottom-0 z-40 w-56 py-4 lg:py-6 transition-transform 
- ${
-   openSidebar ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
- } bg-[#19211D]`}
+        className={`fixed h-full top-0 left-0 bottom-0 z-40 w-56 py-4 lg:py-6 transition-transform
+          ${openSidebar ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          bg-[#19211D]`}
       >
         <div className="rounded-[20px] overflow-y-auto px-4 bg-[#19211D] text-white h-full">
           <div className="flex items-center justify-between pl-6">
-            <p className="">Job Tracker</p>
+            <p className="font-bold text-white">Job Tracker</p>
             <button
               className="text-xl lg:hidden"
               title="Minimize Sidebar"
@@ -79,27 +89,34 @@ const SideBar = ({ role = "candidate" }) => {
             </button>
           </div>
 
-          {/* Top sidebar items */}
-          <ul className="space-y-4 mt-6">
-            {menuItems.map((item) => (
-              <li key={item.id} onClick={toggleMenu}>
-                <Link
-                  to={item.path}
-                  className="flex items-center gap-2 py-2 pl-5 rounded-full cursor-pointer hover:bg-[#E0E1E0] hover:text-primary-text transition-colors duration-300"
-                >
-                  <span className="text-xl">{item.icon}</span>
-                  <h4 className="">{item.label}</h4>
-                </Link>
-              </li>
-            ))}
+          <ul className="space-y-1 mt-6">
+            {menuItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <li key={item.id} onClick={toggleMenu}>
+                  <Link
+                    to={item.path}
+                    className={`flex items-center gap-2 py-2.5 pl-5 rounded-xl cursor-pointer transition-all duration-200 ${
+                      active
+                        ? "bg-white/15 text-white font-semibold"
+                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <span className="text-sm">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </div>
-        <div className="my-4 rounded shadow-sm absolute bottom-1 bg-[#19211D] w-44">
-          <ul className="py-3 text-white space-y-2">
+
+        <div className="absolute bottom-1 left-4 right-4 bg-[#19211D] rounded-xl">
+          <ul className="py-3 text-white space-y-1">
             <li>
               <Link
-                to="settings"
-                className="flex items-center gap-2 py-2 pl-5 rounded-full cursor-pointer hover:bg-[#E0E1E0] hover:text-primary-text transition-colors duration-300"
+                to={`/${role}/settings`}
+                className="flex items-center gap-2 py-2 pl-5 rounded-xl cursor-pointer transition-colors duration-200 hover:bg-white/10"
                 onClick={toggleMenu}
               >
                 <span className="text-xl">
@@ -110,7 +127,7 @@ const SideBar = ({ role = "candidate" }) => {
             </li>
             <li>
               <div
-                className="flex items-center gap-2 py-2 pl-5 rounded-full cursor-pointer hover:bg-[#E0E1E0] hover:text-primary-text transition-colors duration-300"
+                className="flex items-center gap-2 py-2 pl-5 rounded-xl cursor-pointer transition-colors duration-200 hover:bg-white/10"
                 onClick={() => {
                   toggleMenu();
                   toggleLogoutModal();

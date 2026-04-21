@@ -127,6 +127,11 @@ router.get("/mine", requireAuth, async (req, res) => {
 });
 
 router.get('/:id', requireAuth, async (req, res) => {
+  const postId = Number(req.params.id);
+  if (!Number.isInteger(postId) || postId <= 0) {
+    return res.status(400).json({ message: "Invalid job post id" });
+  }
+
   try {
     const result = await pool.query(
       `SELECT
@@ -145,17 +150,144 @@ router.get('/:id', requireAuth, async (req, res) => {
           r.phone,
           r.website,
           r.address,
-          r.industry, 
+          r.industry,
           r.email
        FROM job_posts jp
        LEFT JOIN recruiters r ON r.id = jp.recruiter_id
        WHERE jp.id = $1`,
-       [req.params.id]    
+       [postId]
     );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Job post not found" });
+    }
+
     return res.json(mapRow(result.rows[0]));
   }
   catch (error) {
     return res.status(500).json({ message: "Failed to load job post", detail: error.message });
+  }
+});
+
+router.post("/", requireAuth, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiter accounts can create job posts" });
+  }
+
+  const {
+    title, description, location, salary, experience,
+    employment_type, deadline, responsibilities, requirements
+  } = req.body;
+
+  if (!title || typeof title !== "string" || title.trim().length === 0) {
+    return res.status(400).json({ message: "Job title is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO job_posts (recruiter_id, title, description, location, salary,
+        experience, employment_type, deadline, responsibilities, requirements)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id`,
+      [
+        req.user.id,
+        title.trim(),
+        description?.trim() || "",
+        location?.trim() || "",
+        salary?.trim() || "",
+        experience?.trim() || "",
+        employment_type?.trim() || "",
+        deadline || null,
+        responsibilities?.trim() || "",
+        requirements?.trim() || "",
+      ]
+    );
+
+    return res.status(201).json({ id: result.rows[0].id, ...req.body });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to create job post", detail: error.message });
+  }
+});
+
+router.put("/:id", requireAuth, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiter accounts can update job posts" });
+  }
+
+  const postId = Number(req.params.id);
+  if (!Number.isInteger(postId) || postId <= 0) {
+    return res.status(400).json({ message: "Invalid job post id" });
+  }
+
+  const {
+    title, description, location, salary, experience,
+    employment_type, deadline, responsibilities, requirements
+  } = req.body;
+
+  if (!title || typeof title !== "string" || title.trim().length === 0) {
+    return res.status(400).json({ message: "Job title is required" });
+  }
+
+  try {
+    const existing = await pool.query(
+      `SELECT id FROM job_posts WHERE id = $1 AND recruiter_id = $2`,
+      [postId, req.user.id]
+    );
+
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: "Job post not found or you don't have permission to edit it" });
+    }
+
+    await pool.query(
+      `UPDATE job_posts
+       SET title = $1, description = $2, location = $3, salary = $4,
+           experience = $5, employment_type = $6, deadline = $7,
+           responsibilities = $8, requirements = $9
+       WHERE id = $10 AND recruiter_id = $11`,
+      [
+        title.trim(),
+        description?.trim() || "",
+        location?.trim() || "",
+        salary?.trim() || "",
+        experience?.trim() || "",
+        employment_type?.trim() || "",
+        deadline || null,
+        responsibilities?.trim() || "",
+        requirements?.trim() || "",
+        postId,
+        req.user.id,
+      ]
+    );
+
+    return res.json({ id: postId, ...req.body });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update job post", detail: error.message });
+  }
+});
+
+router.delete("/:id", requireAuth, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiter accounts can delete job posts" });
+  }
+
+  const postId = Number(req.params.id);
+  if (!Number.isInteger(postId) || postId <= 0) {
+    return res.status(400).json({ message: "Invalid job post id" });
+  }
+
+  try {
+    const result = await pool.query(
+      `DELETE FROM job_posts WHERE id = $1 AND recruiter_id = $2 RETURNING id`,
+      [postId, req.user.id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Job post not found or you don't have permission to delete it" });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to delete job post", detail: error.message });
   }
 });
 

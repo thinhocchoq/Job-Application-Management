@@ -17,18 +17,39 @@ const mapSavedJob = (row) => ({
 });
 
 router.post("/", requireAuth, async (req, res) => {
+    if (req.user.role !== "candidate") {
+        return res.status(403).json({ message: "Only candidate accounts can save jobs" });
+    }
+
+    const { jobId } = req.body;
+    const jobIdNum = Number(jobId);
+
+    if (!jobId || isNaN(jobIdNum) || jobIdNum <= 0) {
+        return res.status(400).json({ message: "Invalid job id" });
+    }
+
     try {
-        const { jobId } = req.body;
-        const saveJobs= await pool.query(
-            `INSERT INTO saved_jobs (candidate_id, job_post_id, saved_at)
-            VALUES ($1, $2, NOW())
-            RETURNING *`,
-            [req.user.id, jobId]
+        const jobCheck = await pool.query(
+            "SELECT id FROM job_posts WHERE id = $1",
+            [jobIdNum]
         );
-        return res.json([saveJobs.rows[0]]);
+
+        if (jobCheck.rows.length === 0) {
+            return res.status(404).json({ message: "Job post not found" });
+        }
+
+        const saveJobs = await pool.query(
+            `INSERT INTO saved_jobs (candidate_id, job_post_id, saved_at)
+             VALUES ($1, $2, NOW())
+             RETURNING *`,
+            [req.user.id, jobIdNum]
+        );
+        return res.status(201).json([saveJobs.rows[0]]);
     } catch (error) {
-        console.error("Error saving job:", error);
-        return res.status(500).json({ error: "Internal server error" });
+        if (error.code === "23505") {
+            return res.status(409).json({ message: "This job is already saved" });
+        }
+        return res.status(500).json({ message: "Internal server error", detail: error.message });
     }
 });
 
@@ -76,7 +97,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
 
         if (result.rowCount === 0) {
             await client.query("ROLLBACK");
-            return res.status(404).json({ message: "Application not found" });
+            return res.status(404).json({ message: "Saved job not found" });
         }
 
         await client.query("COMMIT");
@@ -85,7 +106,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
     }
     catch(error) {
         await client.query("ROLLBACK");
-        return res.status(500).json({ message: "Failed to delete application", detail: error.message });
+        return res.status(500).json({ message: "Failed to delete saved job", detail: error.message });
     }
     finally{
         client.release();

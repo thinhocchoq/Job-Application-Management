@@ -1,21 +1,21 @@
 import React, { useState } from "react";
-import { FaTimes, FaMapMarker, FaDollarSign, FaBriefcase, FaRegCalendarAlt, FaBookOpen, FaCheck } from "react-icons/fa";
+import { FaTimes } from "react-icons/fa";
 import { jobPostsApi } from "../../lib/api";
 
-const CreateJob = ({ isOpen, onClose, onSuccess }) => {
+const EditJob = ({ isOpen, job, onClose, onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
   const [form, setForm] = useState({
-    title: "",
-    location: "",
-    salary: "",
-    employment_type: "Full-time",
-    experience: "",
-    deadline: "",
-    industry: "",
-    description: "",
-    responsibilities: "",
-    requirements: "",
+    title: job?.title || "",
+    location: job?.location || "",
+    salary: job?.salary || "",
+    employment_type: job?.employment_type || "Full-time",
+    experience: job?.experience || "",
+    deadline: job?.formattedDeadline || "",
+    description: job?.description || "",
+    responsibilities: job?.responsibilities || "",
+    requirements: job?.requirements || "",
   });
 
   if (!isOpen) return null;
@@ -34,11 +34,11 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
     setIsSubmitting(true);
     setError("");
     try {
-      await jobPostsApi.create(form);
+      await jobPostsApi.update(job.id, form);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
-      setError(err.message || "Failed to create job");
+      setError(err.message || "Failed to update job");
     } finally {
       setIsSubmitting(false);
     }
@@ -47,9 +47,8 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-          <h2 className="text-xl font-bold text-gray-900">Create New Job Posting</h2>
+          <h2 className="text-xl font-bold text-gray-900">Edit Job Posting</h2>
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -58,7 +57,6 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-6">
             {error && (
@@ -67,7 +65,6 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
               </div>
             )}
 
-            {/* Basic Info */}
             <div>
               <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Basic Information</h3>
               <div className="space-y-4">
@@ -80,29 +77,23 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
                     name="title"
                     value={form.title}
                     onChange={handleChange}
-                    placeholder="e.g. Senior Frontend Developer"
                     required
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all"
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      <span className="flex items-center gap-1.5"><FaMapMarker size={14} /> Location</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Location</label>
                     <input
                       type="text"
                       name="location"
                       value={form.location}
                       onChange={handleChange}
-                      placeholder="e.g. Ho Chi Minh City, Vietnam"
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      <span className="flex items-center gap-1.5"><FaDollarSign size={14} /> Salary</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Salary</label>
                     <input
                       type="text"
                       name="salary"
@@ -113,9 +104,7 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      <span className="flex items-center gap-1.5"><FaBriefcase size={14} /> Employment Type</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Employment Type</label>
                     <select
                       name="employment_type"
                       value={form.employment_type}
@@ -129,9 +118,7 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      <span className="flex items-center gap-1.5"><FaRegCalendarAlt size={14} /> Application Deadline</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Application Deadline</label>
                     <input
                       type="date"
                       name="deadline"
@@ -144,46 +131,36 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
               </div>
             </div>
 
-            {/* Details */}
             <div>
               <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Job Details</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    <span className="flex items-center gap-1.5"><FaBookOpen size={14} /> Description</span>
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
                   <textarea
                     name="description"
                     value={form.description}
                     onChange={handleChange}
                     rows="4"
-                    placeholder="Describe the role, team, and company culture..."
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all resize-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    <span className="flex items-center gap-1.5"><FaCheck size={14} /> Responsibilities</span>
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Responsibilities</label>
                   <textarea
                     name="responsibilities"
                     value={form.responsibilities}
                     onChange={handleChange}
                     rows="3"
-                    placeholder="List key responsibilities and daily tasks..."
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all resize-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Requirements
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Requirements</label>
                   <textarea
                     name="requirements"
                     value={form.requirements}
                     onChange={handleChange}
                     rows="3"
-                    placeholder="List required skills, qualifications, and experience..."
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all resize-none"
                   />
                 </div>
@@ -191,7 +168,6 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
             </div>
           </div>
 
-          {/* Footer */}
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 shrink-0 bg-gray-50">
             <button
               type="button"
@@ -203,9 +179,9 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Creating..." : "Create Job"}
+              {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>
@@ -214,4 +190,4 @@ const CreateJob = ({ isOpen, onClose, onSuccess }) => {
   );
 };
 
-export default CreateJob;
+export default EditJob;

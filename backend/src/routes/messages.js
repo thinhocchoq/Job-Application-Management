@@ -108,7 +108,7 @@ router.patch("/:id/read", requireAuth, async (req, res) => {
 
 router.post("/", requireAuth, async (req, res) => {
   if (req.user.role !== "recruiter") {
-    return res.status(403).json({ message: "Only recruiter can use" });
+    return res.status(403).json({ message: "Only recruiter accounts can send messages" });
   }
 
   const { receiverCandidateId, subject, content, jobPostId, applicationId } = req.body;
@@ -121,8 +121,33 @@ router.post("/", requireAuth, async (req, res) => {
   const normalizedJobPostId = Number.isInteger(Number(jobPostId)) ? Number(jobPostId) : null;
   const normalizedApplicationId = Number.isInteger(Number(applicationId)) ? Number(applicationId) : null;
 
+  const client = await pool.connect();
+
   try {
-    const result = await pool.query(
+    await client.query("BEGIN");
+
+    const candidateCheck = await client.query(
+      "SELECT id FROM candidates WHERE id = $1",
+      [candidateId]
+    );
+
+    if (candidateCheck.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Candidate not found" });
+    }
+
+    if (normalizedJobPostId) {
+      const jobCheck = await client.query(
+        "SELECT id FROM job_posts WHERE id = $1 AND recruiter_id = $2",
+        [normalizedJobPostId, req.user.id]
+      );
+      if (jobCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(403).json({ message: "You don't have permission to send messages about this job" });
+      }
+    }
+
+    const result = await client.query(
       `INSERT INTO messages (
           sender_recruiter_id,
           receiver_candidate_id,
@@ -143,6 +168,8 @@ router.post("/", requireAuth, async (req, res) => {
       ]
     );
 
+    await client.query("COMMIT");
+
     return res.status(201).json({
       id: result.rows[0].id,
       subject: result.rows[0].subject,
@@ -151,7 +178,10 @@ router.post("/", requireAuth, async (req, res) => {
       createdAt: result.rows[0].created_at,
     });
   } catch (error) {
+    await client.query("ROLLBACK");
     return res.status(500).json({ message: "Failed to send message", detail: error.message });
+  } finally {
+    client.release();
   }
 });
 

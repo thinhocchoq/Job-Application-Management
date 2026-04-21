@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FaArrowLeft, FaBuilding, FaMapMarkerAlt, FaGlobe, FaBriefcase, FaRegEnvelope, FaPhoneAlt } from "react-icons/fa";
+import { FaBuilding, FaMapMarkerAlt, FaGlobe, FaBriefcase, FaRegEnvelope, FaPhoneAlt } from "react-icons/fa";
 import TopBar from "../../Components/TopBar";
 import { jobPostsApi, usersApi } from "../../lib/api";
 

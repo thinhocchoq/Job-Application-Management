@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { LuBell } from "react-icons/lu";
+import { FaBell } from "react-icons/fa";
 import { messagesApi } from '../lib/api';
 import { formatMessageTime } from '../utils/format';
 
@@ -122,7 +122,7 @@ const ProfileTopBar = ({ userName, userEmail }) => {
               className="relative hover:text-emerald-700 transition-colors"
               aria-label="Open messages"
             >
-              <LuBell size={20} />
+              <FaBell size={20} />
               {unreadCount > 0 && (
                 <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[18px] text-center font-semibold">
                   {unreadCount > 99 ? '99+' : unreadCount}

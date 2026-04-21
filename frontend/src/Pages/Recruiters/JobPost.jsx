@@ -1,261 +1,493 @@
-import React, { useEffect, useState } from 'react';
-import CreateJob from './CreateJob';
-import { jobPostsApi } from '../../lib/api';
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  FaSearch, FaPlus, FaChevronDown, FaChevronUp, FaEdit, FaTrashAlt,
+  FaEye, FaFilter, FaArrowsAltV, FaTimes, FaCheck
+} from "react-icons/fa";
+import { jobPostsApi, usersApi } from "../../lib/api";
+import TopBarDashboard from "../../Components/TopBarDashboard";
+import CreateJob from "./CreateJob";
+import EditJob from "./EditJob";
 
-const initialJobs = [];
+const toStatus = (deadline) => {
+  if (!deadline) return "active";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(deadline);
+  if (Number.isNaN(end.getTime())) return "active";
+  return end < today ? "closed" : "active";
+};
 
-const jobIcons = {
-    brackets: (<svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>),
-    palette: (<svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>),
-    chart: (<svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" /></svg>),
-    database: (<svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>)
-}
+const toStatusLabel = (deadline) => {
+  return toStatus(deadline) === "active" ? "Active" : "Closed";
+};
 
-const actionIcons = {
-    edit: (<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>),
-    view: (<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>),
-    delete: (<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>)
-}
+const toCloseDate = (deadline) => {
+  if (!deadline) return "Not set";
+  const date = new Date(deadline);
+  if (Number.isNaN(date.getTime())) return "Not set";
+  return date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+};
 
-function JobPost() {
-  const [jobs, setJobs] = useState(initialJobs);
-  const [isCreateJobOpen, setIsCreateJobOpen] = useState(false);
+const formatDeadline = (deadline) => {
+  if (!deadline) return "";
+  const date = new Date(deadline);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().split("T")[0];
+};
+
+const getStatusStyle = (deadline) => {
+  const status = toStatus(deadline);
+  if (status === "active") return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+  return "bg-red-50 text-red-600 border border-red-100";
+};
+
+const getMatchScoreStyle = (score) => {
+  if (score >= 80) return "bg-emerald-100 text-emerald-700";
+  if (score >= 60) return "bg-yellow-100 text-yellow-700";
+  return "bg-red-100 text-red-600";
+};
+
+const JobPost = () => {
+  const navigate = useNavigate();
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+
+  const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortField, setSortField] = useState("createdAt");
+  const [sortDir, setSortDir] = useState("desc");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
-    const toStatus = (deadline) => {
-      if (!deadline) {
-        return 'ĐANG MỞ';
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const endDate = new Date(deadline);
-      if (Number.isNaN(endDate.getTime())) {
-        return 'ĐANG MỞ';
-      }
-
-      return endDate < today ? 'ĐÃ ĐÓNG' : 'ĐANG MỞ';
-    };
-
-    const toCloseDate = (deadline) => {
-      if (!deadline) {
-        return 'Not set';
-      }
-
-      const date = new Date(deadline);
-      if (Number.isNaN(date.getTime())) {
-        return 'Not set';
-      }
-
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: '2-digit',
-        year: 'numeric',
-      });
-    };
-
-    const loadRecruiterJobs = async () => {
-      setIsLoading(true);
-      setError('');
-
+    const loadData = async () => {
       try {
-        const data = await jobPostsApi.listMine();
-        const mappedJobs = data.map((job) => ({
-          id: job.id,
-          title: job.title,
-          department: [job.industry, job.employment_type].filter(Boolean).join(' • ') || 'No details',
-          status: toStatus(job.deadline),
-          applicants: Number(job.applicantCount || 0),
-          closedate: toCloseDate(job.deadline),
-          icon: 'brackets',
-        }));
-
-        setJobs(mappedJobs);
-      } catch (loadError) {
-        setError(loadError.message || 'Không tải được danh sách tin tuyển dụng');
-      } finally {
-        setIsLoading(false);
-      }
+        const profile = await usersApi.me();
+        setUserName(profile.name || "");
+        setUserEmail(profile.email || "");
+      } catch (_) {}
     };
-
-    loadRecruiterJobs();
+    loadData();
   }, []);
 
-  const totalApplicants = jobs.reduce((sum, job) => sum + Number(job.applicants || 0), 0);
-
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'ĐANG MỞ': return 'bg-emerald-100 text-emerald-800';
-      case 'BẢN NHÁP': return 'bg-blue-100 text-blue-800';
-      case 'ĐÃ ĐÓNG': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const loadJobs = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const data = await jobPostsApi.listMine();
+      const mapped = (Array.isArray(data) ? data : []).map((job) => ({
+        ...job,
+        status: toStatus(job.deadline),
+        statusLabel: toStatusLabel(job.deadline),
+        closeDate: toCloseDate(job.deadline),
+        formattedDeadline: formatDeadline(job.deadline),
+      }));
+      setJobs(mapped);
+    } catch (err) {
+      setError(err.message || "Failed to load jobs");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const NavItem = ({ icon, label, active }) => (
-    <a href="#" className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium ${active ? 'bg-emerald-50 text-emerald-700' : 'text-gray-700 hover:bg-gray-100'}`}>
-      {icon}
-      {label}
-    </a>
-  );
+  useEffect(() => {
+    loadJobs();
+  }, []);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  };
+
+  const filteredAndSorted = useMemo(() => {
+    let result = [...jobs];
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(
+        (j) =>
+          (j.title || "").toLowerCase().includes(term) ||
+          (j.companyName || "").toLowerCase().includes(term) ||
+          (j.location || "").toLowerCase().includes(term)
+      );
+    }
+
+    if (statusFilter !== "all") {
+      result = result.filter((j) => j.status === statusFilter);
+    }
+
+    result.sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+      if (sortField === "createdAt" || sortField === "deadline") {
+        aVal = aVal ? new Date(aVal).getTime() : 0;
+        bVal = bVal ? new Date(bVal).getTime() : 0;
+      }
+      if (aVal == null) aVal = "";
+      if (bVal == null) bVal = "";
+      const cmp = String(aVal).localeCompare(String(bVal), undefined, { numeric: true });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+    return result;
+  }, [jobs, searchTerm, statusFilter, sortField, sortDir]);
+
+  const handleCreateSuccess = () => {
+    setIsCreateOpen(false);
+    loadJobs();
+  };
+
+  const handleEditSuccess = () => {
+    setEditingJob(null);
+    loadJobs();
+  };
+
+  const handleDeleteClick = (job) => {
+    setDeleteConfirm(job);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    try {
+      await jobPostsApi.remove(deleteConfirm.id);
+      setJobs((prev) => prev.filter((j) => j.id !== deleteConfirm.id));
+      setDeleteConfirm(null);
+    } catch (err) {
+      setError(err.message || "Failed to delete job");
+    }
+  };
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <FaArrowsAltV size={14} className="text-gray-300" />;
+    return sortDir === "asc" ? <FaChevronUp size={14} className="text-emerald-600" /> : <FaChevronDown size={14} className="text-emerald-600" />;
+  };
+
+  const activeCount = jobs.filter((j) => j.status === "active").length;
+  const closedCount = jobs.filter((j) => j.status === "closed").length;
+  const totalApplicants = jobs.reduce((sum, j) => sum + (Number(j.applicantCount) || 0), 0);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-gray-900">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-gray-50">
+      <TopBarDashboard userName={userName} userEmail={userEmail} />
 
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white p-6 border-b border-gray-100 flex items-center justify-between">
-          <div className="relative w-96">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input type="search" placeholder="Search for jobs, candidates, or applications..." className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-200 focus:border-emerald-300 outline-none" />
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-4 pb-12">
+        {/* --- HEADER --- */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">Job Postings</h1>
+            <p className="text-gray-500">Manage your recruitment campaigns</p>
           </div>
-          <div className="flex items-center gap-6">
-            <button className="text-gray-500 hover:text-gray-700 relative">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-              <span className='absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white'></span>
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            <FaPlus size={18} />
+            Create Job
+          </button>
+        </div>
+
+        {/* --- ERROR --- */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError("")} className="text-red-400 hover:text-red-600">
+              <FaTimes size={16} />
             </button>
-             <button className="text-gray-500 hover:text-gray-700">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-             </button>
-            <div className="flex items-center gap-3">
-              <img src="https://api.dicebear.com/8.x/notionists/svg?seed=Alex" alt="User avatar" className="w-10 h-10 rounded-full border-2 border-emerald-100" />
-              <div>
-                <span className="font-semibold text-sm">Alex Sterling</span>
-                <span className="block text-xs text-gray-500">HR Director</span>
-              </div>
-            </div>
           </div>
-        </header>
+        )}
 
-        {/* Content */}
-        <main className="p-8 flex-1">
-          {error && (
-            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
+        {/* --- STATS --- */}
+        <div className="grid grid-cols-3 gap-5 mb-8">
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Jobs</p>
+            <span className="text-3xl font-extrabold text-gray-900">{jobs.length}</span>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Active</p>
+            <span className="text-3xl font-extrabold text-emerald-600">{activeCount}</span>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Applicants</p>
+            <span className="text-3xl font-extrabold text-gray-900">{totalApplicants}</span>
+          </div>
+        </div>
+
+        {/* --- SEARCH & FILTER BAR --- */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
+          <div className="flex items-center gap-3 p-4">
+            <div className="flex-1 relative">
+              <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="search"
+                placeholder="Search jobs by title, company, location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none transition-all"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes size={16} />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                showFilters ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <FaFilter size={16} />
+              Filter
+            </button>
+          </div>
+
+          {showFilters && (
+            <div className="px-4 pb-4 border-t border-gray-100 pt-3 flex items-center gap-3">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Status:</span>
+              {["all", "active", "closed"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors ${
+                    statusFilter === s
+                      ? "bg-emerald-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {s}
+                  {s === "active" && activeCount > 0 && ` (${activeCount})`}
+                  {s === "closed" && closedCount > 0 && ` (${closedCount})`}
+                </button>
+              ))}
             </div>
           )}
+        </div>
 
-          <div className="flex items-center justify-between mb-8">
-            <div>
-                <h1 className="text-3xl font-bold text-emerald-950">Tin tuyển dụng</h1>
-                <p className="text-gray-600 mt-1">Manage your active, draft and closed recruitment campaigns.</p>
+        {/* --- TABLE --- */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {isLoading ? (
+            <div className="p-10 text-center text-gray-500">
+              <div className="animate-spin w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full mx-auto mb-3" />
+              Loading jobs...
             </div>
-            <div className='flex items-center gap-3'>
-                <button className='flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50'>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                    Filters
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateJobOpen(true)}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-800 text-white rounded-lg text-sm font-semibold hover:bg-emerald-900 transition-colors"
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    Create Posting
-                </button>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-4 gap-6 mb-10">
-            {[ { label: 'TOTAL JOBS', value: jobs.length }, { label: 'APPLICANTS', value: totalApplicants.toLocaleString('en-US') }, { label: 'INTERVIEWS', value: '86' }, { label: 'OFFERS SENT', value: '12', color: 'text-emerald-600' } ].map(stat => (
-              <div key={stat.label} className={`bg-white p-6 rounded-2xl shadow-sm border ${stat.color ? 'border-emerald-100' : 'border-gray-100'}`}>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{stat.label}</span>
-                <span className={`block text-4xl font-extrabold mt-2 ${stat.color || 'text-emerald-950'}`}>{stat.value}</span>
+          ) : filteredAndSorted.length === 0 ? (
+            <div className="p-14 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaSearch size={24} className="text-gray-400" />
               </div>
-            ))}
-          </div>
-
-          {/* Table */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="border-b border-gray-100">
-                <tr className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>
-                  <th className="px-6 py-4">JOB TITLE</th>
-                  <th className="px-6 py-4">STATUS</th>
-                  <th className="px-6 py-4 text-center">CANDIDATES</th>
-                  <th className="px-6 py-4">CLOSING DATE</th>
-                  <th className="px-6 py-4 text-right">ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-gray-50'>
-                {isLoading && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
-                      Đang tải tin tuyển dụng...
-                    </td>
-                  </tr>
-                )}
-
-                {!isLoading && jobs.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
-                      Chưa có tin tuyển dụng nào cho tài khoản recruiter này.
-                    </td>
-                  </tr>
-                )}
-
-                {jobs.map((job) => (
-                  <tr key={job.id} className='hover:bg-emerald-50/30 transition-colors'>
-                    <td className="px-6 py-5">
-                        <div className='flex items-center gap-4'>
-                            <div className='w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center'>{jobIcons[job.icon]}</div>
-                            <div>
-                                <span className="font-semibold text-gray-950">{job.title}</span>
-                                <span className="block text-sm text-gray-500 mt-0.5">{job.department}</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusStyle(job.status)}`}>{job.status}</span>
-                    </td>
-                    <td className="px-6 py-5 text-center">
-                        <span className='font-semibold text-lg text-gray-900'>{job.applicants}</span>
-                        {job.id === 1 && <span className='block text-xs text-emerald-600 mt-0.5'>+12 today</span>}
-                        {job.id === 4 && <span className='block text-xs text-emerald-600 mt-0.5'>+2 today</span>}
-                    </td>
-                    <td className="px-6 py-5 text-gray-600 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        {job.closedate}
-                    </td>
-                    <td className="px-6 py-5 text-right text-gray-400">
-                        <div className='flex items-center justify-end gap-2'>
-                            <button className='p-2 hover:text-emerald-600 hover:bg-emerald-100 rounded-lg'>{actionIcons.edit}</button>
-                            <button className='p-2 hover:text-emerald-600 hover:bg-emerald-100 rounded-lg'>{actionIcons.view}</button>
-                            <button className='p-2 hover:text-red-600 hover:bg-red-100 rounded-lg'>{actionIcons.delete}</button>
-                        </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {/* Pagination */}
-            <footer className='p-6 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-sm text-gray-600'>
-              <span>Showing {jobs.length === 0 ? 0 : 1}-{jobs.length} of {jobs.length} jobs</span>
-                <div className='flex items-center gap-1.5'>
-                    <button className='p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50'><svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
-                    {[1, 2, 3].map(page => (
-                        <button key={page} className={`w-9 h-9 flex items-center justify-center border rounded-lg font-semibold ${page === 1 ? 'bg-emerald-800 text-white border-emerald-800' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>{page}</button>
+              <h3 className="font-bold text-gray-900 mb-1">
+                {searchTerm || statusFilter !== "all" ? "No matching jobs" : "No jobs yet"}
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                {searchTerm || statusFilter !== "all"
+                  ? "Try adjusting your search or filters"
+                  : "Create your first job posting to get started"}
+              </p>
+              {!searchTerm && statusFilter === "all" && (
+                <button
+                  onClick={() => setIsCreateOpen(true)}
+                  className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700"
+                >
+                  Create Job
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="px-6 py-4">
+                        <button
+                          onClick={() => handleSort("title")}
+                          className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider hover:text-gray-700"
+                        >
+                          Job Title <SortIcon field="title" />
+                        </button>
+                      </th>
+                      <th className="px-6 py-4">
+                        <button
+                          onClick={() => handleSort("status")}
+                          className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider hover:text-gray-700"
+                        >
+                          Status <SortIcon field="status" />
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-center">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                          Candidates
+                        </span>
+                      </th>
+                      <th className="px-6 py-4">
+                        <button
+                          onClick={() => handleSort("deadline")}
+                          className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider hover:text-gray-700"
+                        >
+                          Closing Date <SortIcon field="deadline" />
+                        </button>
+                      </th>
+                      <th className="px-6 py-4">
+                        <button
+                          onClick={() => handleSort("createdAt")}
+                          className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider hover:text-gray-700"
+                        >
+                          Posted <SortIcon field="createdAt" />
+                        </button>
+                      </th>
+                      <th className="px-6 py-4 text-right">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredAndSorted.map((job) => (
+                      <tr key={job.id} className="hover:bg-emerald-50/20 transition-colors group">
+                        <td className="px-6 py-5">
+                          <div>
+                            <p className="font-semibold text-gray-900">{job.title || "—"}</p>
+                            <p className="text-sm text-gray-500 mt-0.5">
+                              {job.companyName || "—"} {job.location ? `• ${job.location}` : ""}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusStyle(job.deadline)}`}>
+                            {job.statusLabel}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <span className="text-lg font-bold text-gray-900">{job.applicantCount || 0}</span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="text-sm text-gray-600">{job.closeDate}</span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="text-sm text-gray-500">
+                            {job.createdAt
+                              ? new Date(job.createdAt).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })
+                              : "—"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => navigate(`/jobs/${job.id}`)}
+                              className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="View job"
+                            >
+                              <FaEye size={16} />
+                            </button>
+                            <button
+                              onClick={() => navigate("/recruiter/application")}
+                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="View applications"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => setEditingJob(job)}
+                              className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="Edit job"
+                            >
+                              <FaEdit size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(job)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete job"
+                            >
+                              <FaTrashAlt size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                    <button className='p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50'><svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
-                </div>
-            </footer>
-          </div>
-        </main>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-sm text-gray-500">
+                  Showing {filteredAndSorted.length} of {jobs.length} jobs
+                </span>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
+      {/* Create Modal */}
       <CreateJob
-        isOpen={isCreateJobOpen}
-        onClose={() => setIsCreateJobOpen(false)}
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={handleCreateSuccess}
       />
+
+      {/* Edit Modal */}
+      {editingJob && (
+        <EditJob
+          isOpen={!!editingJob}
+          job={editingJob}
+          onClose={() => setEditingJob(null)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaTrashAlt size={24} className="text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Delete Job</h3>
+            <p className="text-gray-500 text-center mb-6">
+              Are you sure you want to delete <strong>"{deleteConfirm.title}"</strong>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default JobPost;

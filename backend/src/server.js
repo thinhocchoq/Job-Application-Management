@@ -10,6 +10,7 @@ import userRoutes from "./routes/users.js";
 import applicationRoutes from "./routes/applications.js";
 import jobPostRoutes from "./routes/jobPosts.js";
 import savedJobsRoutes from "./routes/savedJobs.js";
+import messageRoutes from "./routes/messages.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,8 +51,13 @@ app.use("/api/users", userRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/job-posts", jobPostRoutes);
 app.use("/api/saved-jobs", savedJobsRoutes);
+app.use("/api/messages", messageRoutes);
 
 app.use((err, _req, res, _next) => {
+  if (process.env.NODE_ENV !== "test") {
+    console.error("[Server Error]", err?.message || err, err?.stack || "");
+  }
+
   if (err?.name === "MulterError") {
     if (err.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({ message: "CV file is too large", detail: "Maximum allowed size is 20MB" });
@@ -68,7 +74,8 @@ app.use((err, _req, res, _next) => {
     return res.status(400).json({ message: err.message });
   }
 
-  return res.status(500).json({ message: "Internal server error", detail: err.message });
+  const detail = process.env.NODE_ENV === "production" ? "An unexpected error occurred" : err?.message || "Unknown error";
+  return res.status(500).json({ message: "Internal server error", detail });
 });
 
 const startServer = async () => {

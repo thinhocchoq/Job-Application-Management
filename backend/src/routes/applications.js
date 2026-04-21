@@ -438,7 +438,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
 
 router.post("/apply", requireAuth, uploadCv.single("cvFile"), async (req, res) => {
   if (req.user.role !== "candidate") {
-    return res.status(403).json({message: "Access Denied"});
+    return res.status(403).json({ message: "Access Denied" });
   }
 
   const jobId = Number(req.body?.jobId);
@@ -457,22 +457,40 @@ router.post("/apply", requireAuth, uploadCv.single("cvFile"), async (req, res) =
   try {
     await client.query("BEGIN");
 
+    const jobCheck = await client.query(
+      "SELECT id, deadline FROM job_posts WHERE id = $1",
+      [jobId]
+    );
+
+    if (jobCheck.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Job post not found." });
+    }
+
+    if (jobCheck.rows[0].deadline) {
+      const deadlineDate = new Date(jobCheck.rows[0].deadline);
+      deadlineDate.setHours(23, 59, 59, 999);
+      if (deadlineDate < new Date()) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: "This job posting has closed and is no longer accepting applications." });
+      }
+    }
+
     const checkExist = await client.query(
-      'SELECT 1 FROM applications WHERE candidate_id = $1 AND job_post_id = $2',
+      "SELECT 1 FROM applications WHERE candidate_id = $1 AND job_post_id = $2",
       [req.user.id, jobId]
     );
 
-    if (checkExist.rows.length > 0 )
-    {
+    if (checkExist.rows.length > 0) {
       await client.query("ROLLBACK");
       return res.status(409).json({ message: "You have already applied for this job." });
     }
 
     const application = await client.query(
-    `INSERT INTO applications (candidate_id, job_post_id, applied_at, status)
-          VALUES ($1, $2, NOW(), 'applied')
-          RETURNING *`,
-          [req.user.id, jobId]
+      `INSERT INTO applications (candidate_id, job_post_id, applied_at, status)
+       VALUES ($1, $2, NOW(), 'applied')
+       RETURNING *`,
+      [req.user.id, jobId]
     );
 
     const normalizedFileName = normalizeUploadedFilename(req.file.originalname);
@@ -498,12 +516,55 @@ router.post("/apply", requireAuth, uploadCv.single("cvFile"), async (req, res) =
     await client.query("COMMIT");
 
     return res.status(201).json([application.rows[0]]);
-  } 
+  }
   catch (error) {
     await client.query("ROLLBACK");
+
+    if (error.code === "23503") {
+      return res.status(400).json({ message: "Invalid job post reference." });
+    }
+
     return res.status(500).json({ message: "Failed to submit applications", detail: error.message });
   } finally {
     client.release();
+  }
+});
+
+router.patch("/:id/status", requireAuth, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiter accounts can update application status" });
+  }
+
+  const applicationId = Number(req.params.id);
+  if (!Number.isInteger(applicationId) || applicationId <= 0) {
+    return res.status(400).json({ message: "Invalid application id" });
+  }
+
+  const { status } = req.body;
+  const validStatuses = new Set(["applied", "reviewed", "accepted", "rejected"]);
+  if (!status || !validStatuses.has(status)) {
+    return res.status(400).json({ message: "Invalid status. Must be one of: applied, reviewed, accepted, rejected" });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE applications a
+       SET status = $1
+       FROM job_posts jp
+       WHERE a.id = $2
+         AND a.job_post_id = jp.id
+         AND jp.recruiter_id = $3
+       RETURNING a.id`,
+      [status, applicationId, req.user.id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Application not found or you don't have permission to update it" });
+    }
+
+    return res.json({ id: applicationId, status });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update application status", detail: error.message });
   }
 });
 

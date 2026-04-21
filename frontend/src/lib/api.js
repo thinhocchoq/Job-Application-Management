@@ -111,6 +111,11 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  forgotPassword: (payload) =>
+    request("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
 
 export const usersApi = {
@@ -137,6 +142,11 @@ export const applicationsApi = {
       method: "PUT",
       body: JSON.stringify(payload),
     }),
+  updateStatus: (id, status) =>
+    request(`/applications/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
   remove: (id) =>
     request(`/applications/${id}`, {
       method: "DELETE",
@@ -153,6 +163,23 @@ export const jobPostsApi = {
   listMine: () => request("/job-posts/mine"),
 
   getById: (id) => request(`/job-posts/${id}`),
+
+  create: (payload) =>
+    request("/job-posts", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  update: (id, payload) =>
+    request(`/job-posts/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  remove: (id) =>
+    request(`/job-posts/${id}`, {
+      method: "DELETE",
+    }),
 };
 
 export const savedJobsApi = {

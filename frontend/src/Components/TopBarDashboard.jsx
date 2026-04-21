@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { LuSearch, LuBell } from "react-icons/lu";
+import { FaSearch, FaBell } from "react-icons/fa";
 import { useLocation } from 'react-router-dom';
 import { messagesApi } from '../lib/api';
 import { formatMessageTime } from '../utils/format';
@@ -114,7 +114,7 @@ const TopBarDashboard = ({
     <header className="w-full flex items-center justify-between mb-8">
       {/* KHU VỰC TÌM KIẾM */}
       <div className="flex items-center bg-gray-100 rounded-lg px-4 py-2.5 w-full max-w-md">
-        <LuSearch className="text-gray-400 mr-2" size={18} />
+        <FaSearch className="text-gray-400 mr-2" size={18} />
         <input
           type="text"
           placeholder={searchPlaceholder}
@@ -134,7 +134,7 @@ const TopBarDashboard = ({
             onClick={handleBellClick}
             className="relative hover:text-emerald-700 transition-colors"
           >
-            <LuBell size={20} />
+            <FaBell size={20} />
             {unreadCount > 0 && (
               <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[18px] text-center font-semibold">
                 {unreadCount > 99 ? '99+' : unreadCount}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { FaPlus, FaList, FaThLarge, FaTrashAlt } from "react-icons/fa";
-import { LuSearch } from "react-icons/lu";
+import { FaSearch } from "react-icons/fa";
 import { applicationsApi, savedJobsApi, usersApi } from "../../lib/api"; // Đảm bảo đã import usersApi
 import TopBarDashboard from "../../Components/TopBarDashboard";
 import { Link, useNavigate } from "react-router-dom"; 
@@ -29,8 +29,13 @@ const Applications = () => {
   const loadJobs = async () => {
     try {
       setIsLoading(true);
-      const data = await applicationsApi.list();
-      setJobs(data);
+      const [profile, applications] = await Promise.all([
+        usersApi.me(),
+        applicationsApi.list(),
+      ]);
+      setJobs(applications);
+      setUserName(profile.name || "");
+      setUserEmail(profile.email || "");
       setErrorMessage("");
     } catch (error) {
       setErrorMessage(error.message || "Failed to load applications");
@@ -44,36 +49,15 @@ const Applications = () => {
       setSavedJobsLoading(true);
       const data = await savedJobsApi.list();
       setSavedJobs(data);
-      setErrorMessage("");
-      } 
-      catch (error) {
-        setErrorMessage(error.message || "Failed to load applications");
-      } 
-      finally {
-        setSavedJobsLoading(false);
-      }
+    } catch (error) {
+    } finally {
+      setSavedJobsLoading(false);
+    }
   };
-  
-  const loadData = async () => {
-    try {
-        const [profile, applications] = await Promise.all([
-          usersApi.me(),
-          applicationsApi.list(),
-        ]);
-
-        setJobs(applications);
-        setUserName(profile.name || "");
-        setUserEmail(profile.email || "");
-        setErrorMessage("");
-      } catch (error) {
-        setErrorMessage(error.message || "Failed to load dashboard data");
-      }
-    };
 
   useEffect(() => {
     loadJobs();
     loadSavedJobs();
-    loadData();
   }, []);
 
   const openJobDetail = (job) => {
@@ -196,7 +180,7 @@ const Applications = () => {
       {/* --- THANH TÌM KIẾM & ĐỔI VIEW --- */}
       <div className="flex justify-between items-center mb-6">
         <form onSubmit={(e) => e.preventDefault()} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 w-full max-w-sm shadow-sm focus-within:ring-2 focus-within:ring-emerald-100 focus-within:border-emerald-400 transition-all">
-          <LuSearch className="text-gray-400 text-lg" />
+          <FaSearch className="text-gray-400 text-lg" />
           <input
             type="search"
             placeholder="Search applications..."

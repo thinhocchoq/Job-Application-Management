@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import TopBar from "../../Components/TopBar";
 import { FaMapMarker, FaBuilding, FaArrowUp } from "react-icons/fa";
 import { 
@@ -8,19 +8,15 @@ import {
   FaHome, FaHeartbeat, FaMoneyBillWave, FaDumbbell
 } from "react-icons/fa";
 
-import { applyFromJob, usersApi, jobPostsApi, savedJobsApi, applicationsApi } from "../../lib/api";
+import { applyFromJob, usersApi, jobPostsApi, savedJobsApi, applicationsApi, tokenStorage } from "../../lib/api";
 import FormApply from "./FormApply";
 import { formatMessageTime } from '../../utils/format';
 
 const JobDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const location = useLocation(); // Thêm dòng này
-  const validRoles = ['candidate', 'recruiter'];
-  // Khai báo firstSegment
-  const firstSegment = location.pathname.split('/')[1];
-  // Bây giờ mới tính currentRole
-  const currentRole = validRoles.includes(firstSegment) ? firstSegment : 'candidate';
+  const currentRole = tokenStorage.getRole() === "recruiter" ? "recruiter" : "candidate";
+  const isRecruiterView = currentRole === "recruiter";
   // State của bạn
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
@@ -30,6 +26,8 @@ const JobDetail = () => {
   const [savedJobIds, setSavedJobIds] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isApplied, setIsApplied] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [recruiterStatus, setRecruiterStatus] = useState("open");
 
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [cvFile, setCvFile] = useState(null);
@@ -88,6 +86,19 @@ const JobDetail = () => {
     return parsed < today;
   }
 
+  const toIsoDate = (date) => date.toISOString().split("T")[0];
+
+  const getDeadlineByStatus = (status) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (status === "closed") {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return toIsoDate(yesterday);
+    }
+    return null;
+  };
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -111,7 +122,7 @@ const JobDetail = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!id) return ;
+    if (!id || isRecruiterView) return;
     const fetchAppliedStatus = async () => {
     try {
       const apps = await applicationsApi.list();
@@ -125,9 +136,49 @@ const JobDetail = () => {
     }
   };
     fetchAppliedStatus();
-  }, [id]);
+  }, [id, isRecruiterView]);
+
+  useEffect(() => {
+    if (!isRecruiterView) return;
+    setRecruiterStatus(checkDeadline(jobDetail?.deadline) ? "closed" : "open");
+  }, [jobDetail, isRecruiterView]);
 
   const isSaved = savedJobIds.includes(jobDetail?.id);
+  const isClosed = checkDeadline(jobDetail?.deadline);
+  const currentRecruiterStatus = isClosed ? "closed" : "open";
+  const hasStatusChanged = recruiterStatus !== currentRecruiterStatus;
+
+  const handleRecruiterStatusSave = async () => {
+    if (!isRecruiterView || !jobDetail?.id || !hasStatusChanged) return;
+
+    const nextDeadline = getDeadlineByStatus(recruiterStatus);
+
+    setIsUpdatingStatus(true);
+    try {
+      await jobPostsApi.update(jobDetail.id, {
+        title: jobDetail?.title || "Untitled Job",
+        description: jobDetail?.description || "",
+        location: jobDetail?.location || "",
+        salary: jobDetail?.salary || "",
+        experience: jobDetail?.experience || "",
+        employment_type: jobDetail?.employment_type || "",
+        deadline: nextDeadline,
+        responsibilities: jobDetail?.responsibilities || "",
+        requirements: jobDetail?.requirements || "",
+      });
+
+      setJobDetail((prev) => ({
+        ...prev,
+        deadline: nextDeadline,
+      }));
+      alert("Đã lưu trạng thái tin tuyển dụng");
+    } catch (error) {
+      setRecruiterStatus(currentRecruiterStatus);
+      alert(error.message || "Failed to update job status");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   let buttonText = "Apply Now";
   let applyButtonClass = "flex-1 md:flex-none flex items-center justify-center px-8 py-2.5 font-semibold rounded-lg transition shadow-sm text-white ";
@@ -135,7 +186,7 @@ const JobDetail = () => {
     buttonText = "Đã ứng tuyển";
     applyButtonClass += "bg-gray-400 cursor-not-allowed"; 
   } 
-  else if (checkDeadline(jobDetail?.deadline)) {
+  else if (isClosed) {
     buttonText = "Đã hết hạn";
     applyButtonClass += "bg-red-500 cursor-not-allowed"; 
   } 
@@ -187,20 +238,53 @@ const JobDetail = () => {
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
-            <button 
-              onClick={() => handleSaveClick(jobDetail?.id)}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
-            >
-              {isSaved ? <FaBookmark className="text-emerald-600" /> : <FaRegBookmark />} 
-              {isSaved ? "Saved" : "Save Job"}
-            </button>
-            <button 
-              disabled={checkDeadline(jobDetail?.deadline) || isLoading || isApplied}
-              onClick={() => setShowApplyModal(true)}
-              className={applyButtonClass}
-            >
-              {isLoading ? "Processing..." : buttonText}
-            </button>
+            {isRecruiterView ? (
+              <div className="flex-1 md:flex-none min-w-[220px]">
+                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                  Job Status
+                </label>
+                <div className="relative flex items-center gap-2">
+                  <select
+                    value={recruiterStatus}
+                    onChange={(e) => setRecruiterStatus(e.target.value)}
+                    disabled={isUpdatingStatus}
+                    className={`w-full appearance-none px-3.5 py-2.5 rounded-lg border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-200 ${
+                      recruiterStatus === "closed"
+                        ? "bg-red-50 text-red-700 border-red-200"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    } ${isUpdatingStatus ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
+                  >
+                    <option value="open">Open</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleRecruiterStatusSave}
+                    disabled={isUpdatingStatus || !hasStatusChanged}
+                    className="px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isUpdatingStatus ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <button 
+                  onClick={() => handleSaveClick(jobDetail?.id)}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
+                >
+                  {isSaved ? <FaBookmark className="text-emerald-600" /> : <FaRegBookmark />} 
+                  {isSaved ? "Saved" : "Save Job"}
+                </button>
+                <button 
+                  disabled={isClosed || isLoading || isApplied}
+                  onClick={() => setShowApplyModal(true)}
+                  className={applyButtonClass}
+                >
+                  {isLoading ? "Processing..." : buttonText}
+                </button>
+              </>
+            )}
           </div>
         </div>
 

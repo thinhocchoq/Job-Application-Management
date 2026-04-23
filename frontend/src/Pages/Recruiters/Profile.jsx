@@ -1,69 +1,75 @@
 import { useState, useEffect } from "react";
 import {
   MdOutlineEdit,
-  MdAdd,
   MdCameraAlt,
-  MdSettings,
-  MdPictureAsPdf,
-  MdClose
+  MdBusiness,
+  MdLanguage,
+  MdPhone,
+  MdLocationOn,
+  MdCategory,
+  MdWork,
+  MdPeople,
+  MdVpnKey,
+  MdDescription,
+  MdPerson
 } from "react-icons/md";
 import { usersApi } from "../../lib/api";
 import ProfileTopBar from "../../Components/ProfileTopBar";
-import { calculateAge } from '../../utils/format';
 
 const Profile = () => {
-  const [editingName, setEditingName] = useState(false);
-  const [editingPersonal, setEditingPersonal] = useState(false);
-  const [editingExperience, setEditingExperience] = useState(false);
-  const [editingJobPreferences, setEditingJobPreferences] = useState(false);
-  const [editingResume, setEditingResume] = useState(false);
-  const [editingSkills, setEditingSkills] = useState(false);
+  // Trạng thái Edit cho từng section
+  const [editingHero, setEditingHero] = useState(false);
+  const [editingContact, setEditingContact] = useState(false);
+  const [editingOrganization, setEditingOrganization] = useState(false);
 
+  // States cho TopBar & Cấu hình chung
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [location, setLocation] = useState("");
-  const [dob, setDoB] = useState("");
-  const [experience, setExperience] = useState("");
-  const [jobType, setJobType] = useState("");
-  const [skills, setSkills] = useState([]);
-  const [newSkill, setNewSkill] = useState("");
-  const [resume, setResume] = useState(null);
   const [profileError, setProfileError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const formatDate = (value) => {
-    if (!value) return "Chưa cập nhật";
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return "Chưa cập nhật";
-    return parsed.toLocaleDateString("vi-VN");
-  };
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await usersApi.me();
-        setUserName(response.name);
-        setUserEmail(response.email);
-      } catch (error) {}
-    };
-    fetchUserData();
-  }, []);
+  // States cho Recruiter (Cá nhân)
+  const [fullName, setFullName] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   
+  // States cho Contact (Liên hệ)
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [website, setWebsite] = useState("");
+  const [linkedIn, setLinkedIn] = useState("");
+
+  // States cho Company/Organization (Tổ chức)
+  const [companyName, setCompanyName] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [companySize, setCompanySize] = useState("");
+  const [taxCode, setTaxCode] = useState("");
+  const [address, setAddress] = useState("");
+  const [description, setDescription] = useState("");
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const profile = await usersApi.me();
-        setName(profile.name || "");
+        
+        // Map dữ liệu từ API vào State
+        setUserName(profile.full_name || profile.company_name || profile.name || "");
+        setUserEmail(profile.email || "");
+        
+        setFullName(profile.full_name || profile.name || "");
+        setJobTitle(profile.job_title || "");
+        
         setEmail(profile.email || "");
         setPhone(profile.phone || "");
-        setLocation(profile.location || "");
-        setDoB(profile.dob || "");
-        setExperience(profile.experience || "");
-        setJobType(profile.job_type || "");
-        setSkills(Array.isArray(profile.skills) ? profile.skills : []);
+        setWebsite(profile.website || "");
+        setLinkedIn(profile.linkedin || "");
+
+        setCompanyName(profile.company_name || profile.name || "");
+        setIndustry(profile.industry || "");
+        setCompanySize(profile.company_size || "");
+        setTaxCode(profile.tax_code || "");
+        setAddress(profile.address || profile.location || "");
+        setDescription(profile.description || "");
+
         setProfileError("");
       } catch (error) {
         setProfileError(error.message || "Failed to load profile");
@@ -76,24 +82,40 @@ const Profile = () => {
   const saveProfile = async () => {
     setIsSaving(true);
     try {
-      const updated = await usersApi.updateMe({
-        name,
+      const payload = {
+        name: companyName,
+        full_name: fullName,
+        job_title: jobTitle,
         phone,
-        location,
-        dob,
-        experience,
-        jobType,
-        skills,
-      });
+        website,
+        linkedin: linkedIn,
+        company_name: companyName,
+        industry,
+        company_size: companySize,
+        tax_code: taxCode,
+        address,
+        location: address,
+        description: description
+      };
 
-      setName(updated.name || "");
+      const updated = await usersApi.updateMe(payload);
+
+      // Cập nhật lại UI sau khi save thành công
+      setUserName(updated.full_name || updated.company_name || updated.name || "");
+      setUserEmail(updated.email || "");
+      setFullName(updated.full_name || updated.name || "");
+      setJobTitle(updated.job_title || "");
       setEmail(updated.email || "");
       setPhone(updated.phone || "");
-      setLocation(updated.location || "");
-      setDoB(updated.dob || "");
-      setExperience(updated.experience || "");
-      setJobType(updated.job_type || "");
-      setSkills(Array.isArray(updated.skills) ? updated.skills : []);
+      setWebsite(updated.website || "");
+      setLinkedIn(updated.linkedin || "");
+      setCompanyName(updated.company_name || updated.name || "");
+      setIndustry(updated.industry || "");
+      setCompanySize(updated.company_size || "");
+      setTaxCode(updated.tax_code || "");
+      setAddress(updated.address || updated.location || "");
+      setDescription(updated.description || "");
+
       setProfileError("");
     } catch (error) {
       setProfileError(error.message || "Failed to save profile");
@@ -104,43 +126,21 @@ const Profile = () => {
 
   const handleEditToggle = async (section) => {
     const sectionStates = {
-      personal: editingPersonal,
-      experience: editingExperience,
-      jobPreferences: editingJobPreferences,
-      resume: editingResume,
-      skills: editingSkills,
-      name: editingName,
+      hero: editingHero,
+      contact: editingContact,
+      organization: editingOrganization,
     };
 
-    if (sectionStates[section] && section !== "resume") {
+    // Nếu đang ở trạng thái edit và bấm chuyển -> Save
+    if (sectionStates[section]) {
       await saveProfile();
     }
 
-    if (section === "personal") setEditingPersonal(!editingPersonal);
-    else if (section === "experience") setEditingExperience(!editingExperience);
-    else if (section === "jobPreferences") setEditingJobPreferences(!editingJobPreferences);
-    else if (section === "resume") setEditingResume(!editingResume);
-    else if (section === "skills") setEditingSkills(!editingSkills);
-    else if (section === "name") setEditingName(!editingName);
+    if (section === "hero") setEditingHero(!editingHero);
+    else if (section === "contact") setEditingContact(!editingContact);
+    else if (section === "organization") setEditingOrganization(!editingOrganization);
   };
 
-  const handleAddSkill = () => {
-    if (newSkill.trim()) {
-      setSkills([...skills, newSkill]);
-      setNewSkill("");
-    }
-  };
-
-  const handleDeleteSkill = (index) => {
-    const newSkills = skills.filter((_, i) => i !== index);
-    setSkills(newSkills);
-  };
-
-  const handleResumeChange = (e) => {
-    setResume(e.target.files[0]);
-  };
-
-  // Nút lưu/edit dùng chung
   const ActionButton = ({ isEditing, onClick, label = "Save" }) => (
     isEditing ? (
       <button
@@ -153,7 +153,7 @@ const Profile = () => {
     ) : (
       <button 
         onClick={onClick} 
-        className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-800 transition"
+        className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-800 transition whitespace-nowrap"
       >
         <MdOutlineEdit className="text-lg" /> Edit Info
       </button>
@@ -164,23 +164,21 @@ const Profile = () => {
     <div className="bg-[#fbfcfa] min-h-screen px-8 pt-4 pb-8 lg:px-10 lg:pt-5 lg:pb-10">      
       <ProfileTopBar userName={userName} userEmail={userEmail}  />
       
-      {/* ================= KHUNG CHỨA TOÀN BỘ NỘI DUNG PROFILE ================= */}
       <div className="w-full px-10 py-6 mx-auto font-sans text-gray-800">        
-        {/* ERROR MESSAGE */}
         {profileError && (
           <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-xl font-medium">
             {profileError}
           </div>
         )}
 
-        {/* ================= HERO PROFILE ================= */}
+        {/* ================= HERO PROFILE (RECRUITER INFO) ================= */}
         <div className="flex justify-center mb-10">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 max-w-3xl">            
+          <div className="flex flex-col md:flex-row items-center md:items-center justify-center gap-6 max-w-4xl w-full">            
             
-            {/* Avatar (Đã xóa các class bị nhầm) */}
+            {/* Avatar */}
             <div className="relative w-36 h-36 bg-[#0b3b4d] rounded-2xl flex-shrink-0 flex items-end justify-center overflow-hidden shadow-sm">
               <img 
-                src="https://api.dicebear.com/8.x/avataaars/svg?seed=Alex&backgroundColor=0b3b4d" 
+                src={`https://api.dicebear.com/8.x/avataaars/svg?seed=${fullName || "Alex"}&backgroundColor=0b3b4d`} 
                 alt="Avatar" 
                 className="w-32 h-32 object-cover translate-y-2"
               />
@@ -189,216 +187,211 @@ const Profile = () => {
               </button>
             </div>
 
-            {/* Thông tin Tên & Mô tả */}
-            <div className="flex-1 text-center md:text-left mt-2">
-              <div className="flex items-center justify-center md:justify-start gap-3">
-                {editingName ? (
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="text-3xl font-bold border-b-2 border-[#0b3b4d] outline-none bg-transparent px-1 pb-1 w-full max-w-sm"
-                    placeholder="Your Name"
-                  />
-                ) : (
-                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                    {name || "Alex Rivera"} <span className="text-gray-400 font-medium text-2xl md:text-3xl hidden md:inline">• Recruiter</span>
-                  </h1>
-                )}
-                
-                {editingName ? (
-                  <button onClick={() => handleEditToggle("name")} className="text-sm px-3 py-1.5 bg-[#0b3b4d] text-white rounded-lg font-semibold">Save</button>
-                ) : (
-                  <button onClick={() => handleEditToggle("name")} className="text-gray-400 hover:text-gray-800"><MdOutlineEdit size={22} /></button>
-                )}
-              </div>
-        
-              <div className="mt-3">
-                {editingName ? (
-                  <div className="flex items-center justify-center md:justify-start gap-3">
-                    <span className="text-gray-600 text-lg font-medium">Date of Birth:</span>
+            {/* Thông tin Cá nhân */}
+            <div className="text-center md:text-left mt-2 w-full md:w-auto">
+              <div className="flex items-center justify-center md:justify-start gap-5 w-full">
+                <div className="flex flex-col gap-2 w-full md:w-auto md:max-w-2xl">
+                  {editingHero ? (
                     <input
-                      type="date"
-                      value={dob}
-                      onChange={(e) => setDoB(e.target.value)}
-                      className="text-lg bg-white border border-gray-200 rounded-lg px-3 py-1 outline-none focus:border-[#0b3b4d] text-gray-800 shadow-sm"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="text-3xl font-bold border-b-2 border-[#0b3b4d] outline-none bg-transparent px-1 pb-1 w-full max-w-md"
+                      placeholder=""
                     />
-                  </div>
-                ) : (
-                  <p className="text-gray-600 text-lg leading-relaxed max-w-2xl">
-                    <span className="font-medium mr-2">Date of Birth:</span>
-                    {dob ? (
-                      <span className="text-gray-900 font-semibold">{formatDate(dob)}</span>
-                    ) : (
-                      <span className="text-gray-400 italic">Not specified</span>
-                    )}
-                    <br />
-                    <span className="font-medium mr-2">Age:</span>
-                    {calculateAge(dob) !== null ? (
-                      <span className="text-gray-900 font-semibold">{calculateAge(dob)} years old</span>
-                    ) : (
-                      <span className="text-gray-400 italic">Not specified</span>
-                    )}
-                  </p>
-                )}
+                  ) : (
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 flex items-center gap-2">
+                      {fullName || "Recruiter Name"} 
+                      <span className="text-green-500 text-xl" title="Verified Recruiter">✔</span>
+                    </h1>
+                  )}
+
+                  {editingHero ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                        className="text-lg bg-white border border-gray-200 rounded-lg px-3 py-1 outline-none focus:border-[#0b3b4d] shadow-sm"
+                        placeholder="Technical Recruiter..."
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-xl font-medium">
+                      {jobTitle || "Job Title not specified"} <span className="mx-2">•</span> {companyName || "Company not specified"}
+                    </p>
+                  )}
+                </div>
+                
+                <div className="hidden md:block md:ml-6 lg:ml-10">
+                  <ActionButton isEditing={editingHero} onClick={() => handleEditToggle("hero")} />
+                </div>
+              </div>
+              
+              {/* Nút Edit cho Mobile */}
+              <div className="mt-4 md:hidden flex justify-center">
+                <ActionButton isEditing={editingHero} onClick={() => handleEditToggle("hero")} />
               </div>
             </div>
           </div>
         </div>
 
         {/* ================= CÁC PHẦN BÊN DƯỚI ================= */}
-        <div className="flex flex-col gap-6">
-          {/* PERSONAL DETAILS */}
+        <div className="flex flex-col gap-6 w-full">
+          
+          {/* ================= CONTACT DETAILS ================= */}
           <div className="bg-white rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl md:text-2xl font-bold text-[#0b3b4d]">Personal Details</h2>
-              <ActionButton isEditing={editingPersonal} onClick={() => handleEditToggle("personal")} />
+              <h2 className="text-xl md:text-2xl font-bold text-[#0b3b4d]">Contact Details</h2>
+              <ActionButton isEditing={editingContact} onClick={() => handleEditToggle("contact")} />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Email */}
               <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Email Address</p>
-                {editingPersonal ? (
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" />
-                ) : (
-                  <p className="font-semibold text-gray-900">{email || "alex.rivera@design.curator"}</p>
-                )}
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdBusiness /> Account Email</p>
+                <p className="font-semibold text-gray-900">{email || "Not specified"}</p>
+                <p className="text-xs text-gray-400 mt-2">Email is managed by account settings.</p>
               </div>
               
               {/* Phone */}
               <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Phone Number</p>
-                {editingPersonal ? (
-                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" />
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdPhone /> Phone Number</p>
+                {editingContact ? (
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" placeholder="09xx xxx xxx" />
                 ) : (
-                  <p className="font-semibold text-gray-900">{phone || ""}</p>
+                  <p className="font-semibold text-gray-900">{phone || "Not specified"}</p>
+                )}
+              </div>
+              
+              {/* Website */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdLanguage /> Website</p>
+                {editingContact ? (
+                  <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" placeholder="https://your-company.com" />
+                ) : (
+                  <a href={website} target="_blank" rel="noreferrer" className="font-semibold text-[#0b3b4d] hover:underline break-all">{website || "Not specified"}</a>
+                )}
+              </div>
+
+              {/* LinkedIn */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdPerson /> LinkedIn Profile</p>
+                {editingContact ? (
+                  <input type="text" value={linkedIn} onChange={(e) => setLinkedIn(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" placeholder="https://linkedin.com/in/..." />
+                ) : (
+                  <a href={linkedIn} target="_blank" rel="noreferrer" className="font-semibold text-[#0b3b4d] hover:underline break-all">{linkedIn || "Not specified"}</a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ================= ORGANIZATION DETAILS ================= */}
+          <div className="bg-white rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl md:text-2xl font-bold text-[#0b3b4d]">Organization Details</h2>
+              <ActionButton isEditing={editingOrganization} onClick={() => handleEditToggle("organization")} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Company Name */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100 md:col-span-2">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdBusiness /> Company Legal Name</p>
+                {editingOrganization ? (
+                  <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" placeholder="Tên đầy đủ của công ty..." />
+                ) : (
+                  <p className="font-semibold text-gray-900">{companyName || "Not specified"}</p>
+                )}
+              </div>
+
+              {/* Industry */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdCategory /> Industry</p>
+                {editingOrganization ? (
+                  <input type="text" value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" placeholder="IT, Finance, E-commerce..." />
+                ) : (
+                  <p className="font-semibold text-gray-900">{industry || "Not specified"}</p>
+                )}
+              </div>
+
+              {/* Company Size */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdPeople /> Company Size</p>
+                {editingOrganization ? (
+                  <select value={companySize} onChange={(e) => setCompanySize(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]">
+                    <option value="">Select size...</option>
+                    <option value="1-50">1 - 50 employees</option>
+                    <option value="51-200">51 - 200 employees</option>
+                    <option value="201-500">201 - 500 employees</option>
+                    <option value="500+">500+ employees</option>
+                  </select>
+                ) : (
+                  <p className="font-semibold text-gray-900">{companySize || "Not specified"}</p>
+                )}
+              </div>
+
+              {/* Tax Code */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdVpnKey /> Tax Code (Mã số thuế)</p>
+                {editingOrganization ? (
+                  <input type="text" value={taxCode} onChange={(e) => setTaxCode(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" placeholder="Nhập mã số thuế..." />
+                ) : (
+                  <p className="font-semibold text-gray-900">{taxCode || "Not specified"}</p>
                 )}
               </div>
 
               {/* Address */}
               <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Address</p>
-                {editingPersonal ? (
-                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" />
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdLocationOn /> Address</p>
+                {editingOrganization ? (
+                  <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d]" placeholder="Địa chỉ văn phòng..." />
                 ) : (
-                  <p className="font-semibold text-gray-900">{location || ""}</p>
+                  <p className="font-semibold text-gray-900">{address || "Not specified"}</p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100 md:col-span-2">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><MdDescription /> Company Description</p>
+                {editingOrganization ? (
+                  <textarea 
+                    value={description} 
+                    onChange={(e) => setDescription(e.target.value)} 
+                    rows={4}
+                    className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-[#0b3b4d] resize-none" 
+                    placeholder="Giới thiệu về văn hóa, môi trường và sứ mệnh của công ty..." 
+                  />
+                ) : (
+                  <p className="font-semibold text-gray-900 whitespace-pre-line">{description || "No description provided."}</p>
                 )}
               </div>
             </div>
           </div>
 
-          {/* WORK EXPERIENCE */}
-          <div className="bg-white rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl md:text-2xl font-bold text-[#0b3b4d]">Work Experience</h2>
-              <button 
-                onClick={() => handleEditToggle("experience")}
-                className="px-4 py-2 bg-[#0b3b4d] text-white text-sm font-semibold rounded-full hover:bg-[#072733] transition flex items-center gap-1 shadow-sm"
-              >
-                {editingExperience ? (isSaving ? "Saving..." : "Save Changes") : <><MdAdd size={18} /> Add Position</>}
-              </button>
-            </div>
-
-            <div className="bg-gray-50/80 rounded-2xl p-6 border border-gray-100">
-              {editingExperience ? (
-                <textarea
-                  rows="4"
-                  value={experience}
-                  onChange={(e) => setExperience(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl p-4 outline-none focus:ring-2 focus:ring-[#0b3b4d]/20 focus:border-[#0b3b4d] resize-none"
-                  placeholder="Write about your work experience..."
-                />
-              ) : (
-                <div className="flex gap-4 items-start">
-                    <div className="w-12 h-12 bg-[#c6e1e8] rounded-xl flex items-center justify-center text-[#0b3b4d] flex-shrink-0">
-                      <MdAdd size={20} className="rotate-45" /> {/* Placeholder cho icon công ty */}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">Overview</h3>
-                      {experience ? (
-                        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{experience}</p>
-                      ) : (
-                        <p className="text-sm text-gray-500 italic">No experience details added yet. Click "+ Add Position" to update.</p>
-                      )}
-                    </div>
+          {/* ================= DB MAPPING (Chỉ dùng để Debug) ================= */}
+          <div className="bg-[#f7f9fa] rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold text-[#0b3b4d] mb-4">DB Recruiter Mapping (Debug)</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+              {[
+                { label: "full_name", val: fullName },
+                { label: "job_title", val: jobTitle },
+                { label: "company_name", val: companyName },
+                { label: "email", val: email },
+                { label: "phone", val: phone },
+                { label: "linkedin", val: linkedIn },
+                { label: "industry", val: industry },
+                { label: "company_size", val: companySize },
+                { label: "tax_code", val: taxCode },
+                { label: "address", val: address },
+              ].map((item, index) => (
+                <div key={index} className="bg-white rounded-xl border border-gray-100 p-3">
+                  <p className="text-gray-500 text-xs">{item.label}</p>
+                  <p className="font-semibold text-gray-900 truncate" title={item.val}>{item.val || "-"}</p>
                 </div>
-              )}
+              ))}
             </div>
           </div>
 
-          {/* SKILLS & JOB PREFERENCES ROW */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* SKILLS */}
-            <div className="bg-[#f7f9fa] rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-[#0b3b4d]">Skills</h2>
-                <button onClick={() => handleEditToggle("skills")} className="text-gray-400 hover:text-gray-700 transition">
-                  {editingSkills ? <span className="text-sm font-bold bg-white px-3 py-1 rounded border shadow-sm">Save</span> : <MdSettings size={22} />}
-                </button>
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                {skills.map((skill, index) => (
-                  <span key={index} className="bg-[#e4ebf0] text-[#2b4c59] px-3.5 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2">
-                    {skill}
-                    {editingSkills && (
-                      <button onClick={() => handleDeleteSkill(index)} className="text-[#2b4c59] hover:text-red-500 bg-white/50 rounded-full p-0.5">
-                        <MdClose size={14} />
-                      </button>
-                    )}
-                  </span>
-                ))}
-                
-                {editingSkills && (
-                  <div className="flex items-center bg-white rounded-full pl-3 pr-1 py-1 border border-gray-200 shadow-sm">
-                    <input
-                      type="text"
-                      value={newSkill}
-                      onChange={(e) => setNewSkill(e.target.value)}
-                      placeholder="New skill..."
-                      className="w-24 text-sm outline-none bg-transparent"
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
-                    />
-                    <button onClick={handleAddSkill} className="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full p-1 transition">
-                      <MdAdd size={16} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* JOB PREFERENCES */}
-            <div className="bg-[#f7f9fa] rounded-[20px] p-6 md:p-8 shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-[#0b3b4d]">Organization</h2>
-                <ActionButton isEditing={editingJobPreferences} onClick={() => handleEditToggle("jobPreferences")} />
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-50">
-                  <span className="text-gray-500 text-sm font-medium">Company Name</span>
-                  <span className="font-bold text-gray-900">{jobType || "Your Company"}</span>
-                </div>
-                
-                <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-50">
-                  <span className="text-gray-500 text-sm font-medium">Department</span>
-                  {editingJobPreferences ? (
-                    <input 
-                      type="text" 
-                      value={jobType} 
-                      onChange={(e) => setJobType(e.target.value)} 
-                      className="text-right border-b border-gray-300 outline-none font-bold text-gray-900 w-1/2 focus:border-[#0b3b4d]" 
-                      placeholder="e.g. Recruitment"
-                    />
-                  ) : (
-                    <span className="font-bold text-gray-900">{jobType || "Recruitment"}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

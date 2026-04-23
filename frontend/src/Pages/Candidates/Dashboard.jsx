@@ -64,10 +64,10 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-[#fbfcfa] min-h-screen px-8 pt-4 pb-8 lg:px-10 lg:pt-5 lg:pb-10">      
+    <div className="min-h-screen bg-gray-50">
       <TopBarDashboard userName={userName} userEmail={userEmail} />
-      {/* --- HEADER --- */}
-      <div className="mb-8">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-6 pb-12">
+        {/* --- HEADER --- */}
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           {getGreeting()}, {(userName || "").split(" ")[0] || "User"}
         </h1>
@@ -78,10 +78,9 @@ const Dashboard = () => {
             {errorMessage}
           </p>
         )}
-      </div>
 
-      {/* --- STATS CARDS --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        {/* --- STATS CARDS --- */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-1">
         
         {/* Card 1: Applied */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
@@ -108,10 +107,10 @@ const Dashboard = () => {
           </div>
         </div>
 
-      </div>
+        </div>
 
-      {/* --- MAIN LAYOUT (2 COLUMNS) --- */}
-      <div className="flex flex-col lg:flex-row gap-8">
+        {/* --- MAIN LAYOUT (2 COLUMNS) --- */}
+        <div className="flex flex-col lg:flex-row gap-8">
         
         {/* CỘT TRÁI: Recent Applications */}
         <div className="w-full lg:w-2/3">
@@ -210,6 +209,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+        </div>
       </div>
     </div>
   );

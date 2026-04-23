@@ -188,7 +188,12 @@ const Jobsearch = () => {
 
   return (
     <div className="min-h-screen bg-[#fbfcfa]">
-      <TopBarDashboard userName={userName} userEmail={userEmail} searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search jobs, companies, locations..." />
+      <TopBarDashboard userName={userName} 
+      userEmail={userEmail} 
+      searchValue={searchTerm} 
+      onSearchChange={setSearchTerm} 
+      showSearch={false}
+      searchPlaceholder="Search jobs, companies, locations..." />
 
       <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-4 pb-12">
         <div className="mb-8">

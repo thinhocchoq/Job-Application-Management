@@ -11,6 +11,7 @@ const TopBarDashboard = ({
   searchValue,
   onSearchChange,
   searchPlaceholder = "Search...",
+  showSearch = true,
 }) => {
   const isSearchControlled = typeof onSearchChange === "function";
   const location = useLocation();
@@ -95,7 +96,7 @@ const TopBarDashboard = ({
         key={message.id}
         type="button"
         onClick={() => handleMarkRead(message)}
-        className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${message.isRead ? 'bg-white' : 'bg-emerald-50/40'}`}
+        className={`w-full text-left px-4 py-3 border-b border-white hover:bg-gray-50 transition-colors ${message.isRead ? 'bg-white' : 'bg-emerald-50/40'}`}
       >
         <div className="flex items-start justify-between gap-3">
           <p className={`text-sm ${message.isRead ? 'font-medium text-gray-700' : 'font-semibold text-gray-900'}`}>
@@ -111,66 +112,70 @@ const TopBarDashboard = ({
   };
 
   return (
-    <header className="w-full flex items-center justify-between mb-8">
-      {/* KHU VỰC TÌM KIẾM */}
-      <div className="flex items-center bg-gray-100 rounded-lg px-4 py-2.5 w-full max-w-md">
-        <FaSearch className="text-gray-400 mr-2" size={18} />
-        <input
-          type="text"
-          placeholder={searchPlaceholder}
-          onChange={isSearchControlled ? (e) => onSearchChange(e.target.value) : undefined}
-          {...(typeof searchValue === "string" ? { value: searchValue } : {})}
-          className="bg-transparent border-none outline-none w-full text-sm text-gray-700 placeholder-gray-400 focus:ring-0"
-        />
-      </div>
-
-      {/* TÀI KHOẢN & THÔNG BÁO */}
-      <div className="flex items-center gap-5 text-gray-500">
-        
-        {/* Chuông thông báo */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={handleBellClick}
-            className="relative hover:text-emerald-700 transition-colors"
-          >
-            <FaBell size={20} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[18px] text-center font-semibold">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
-          </button>
-   
-          {/* Dropdown */}
-          {isOpen && (
-            <div className="absolute right-0 mt-3 w-80 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden z-50">
-              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                <p className="text-sm font-semibold text-gray-800">Messages</p>
-                <p className="text-xs text-gray-500">{unreadCount} Unread</p>
-              </div>
-              <div className="max-h-96 overflow-auto">
-                {renderInboxContent()}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Thông tin người dùng */}
-        <div className="flex items-center gap-3 ml-2">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-gray-800">{userName || "Tên Người Dùng"}</p>
-            <p className="text-xs text-gray-500">{userEmail || "email@example.com"}</p>
+    <header className="w-full bg-white border-b border-gray-200">
+      <div className={`px-6 lg:px-10 h-20 flex items-center gap-6 ${showSearch ? "justify-between" : "justify-end"}`}>
+        {/* KHU VỰC TÌM KIẾM */}
+        {showSearch && (
+          <div className="flex items-center bg-gray-100 rounded-lg px-4 py-2.5 w-full max-w-md">
+            <FaSearch className="text-gray-400 mr-2" size={18} />
+            <input
+              type="text"
+              placeholder={searchPlaceholder}
+              onChange={isSearchControlled ? (e) => onSearchChange(e.target.value) : undefined}
+              {...(typeof searchValue === "string" ? { value: searchValue } : {})}
+              className="bg-transparent border-none outline-none w-full text-sm text-gray-700 placeholder-gray-400 focus:ring-0"
+            />
           </div>
-          <button className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 ml-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
-                {typeof userName === 'string' && userName.length > 0 ? userName.charAt(0).toUpperCase() : 'U'}
+        )}
+
+        {/* TÀI KHOẢN & THÔNG BÁO */}
+        <div className="flex items-center gap-5 text-gray-500">
+          
+          {/* Chuông thông báo */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={handleBellClick}
+              className="relative hover:text-emerald-700 transition-colors"
+            >
+              <FaBell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[18px] text-center font-semibold">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+    
+            {/* Dropdown */}
+            {isOpen && (
+              <div className="absolute right-0 mt-3 w-80 rounded-xl border border-white bg-white shadow-xl overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-white bg-gray-50">
+                  <p className="text-sm font-semibold text-gray-800">Messages</p>
+                  <p className="text-xs text-gray-500">{unreadCount} Unread</p>
+                </div>
+                <div className="max-h-96 overflow-auto">
+                  {renderInboxContent()}
+                </div>
               </div>
             )}
-          </button>
+          </div>
+
+          {/* Thông tin người dùng */}
+          <div className="flex items-center gap-3 ml-2">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-semibold text-gray-800">{userName || "Tên Người Dùng"}</p>
+              <p className="text-xs text-gray-500">{userEmail || "email@example.com"}</p>
+            </div>
+            <button className="w-9 h-9 rounded-full overflow-hidden border border-white ml-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                  {typeof userName === 'string' && userName.length > 0 ? userName.charAt(0).toUpperCase() : 'U'}
+                </div>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </header>

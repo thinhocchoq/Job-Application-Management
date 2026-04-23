@@ -7,12 +7,25 @@ const router = express.Router();
 const mapProfile = (row) => ({
   id: row.id,
   name: row.role === "recruiter" ? row.company_name || "" : row.candidate_name || "",
+  full_name:
+    row.role === "recruiter"
+      ? row.recruiter_name || row.company_name || ""
+      : row.candidate_name || "",
+  job_title: row.role === "recruiter" ? "" : "",
+  company_name: row.role === "recruiter" ? row.company_name || "" : "",
   email:
     row.role === "recruiter"
       ? row.recruiter_email || row.login_name
       : row.candidate_email || row.login_name,
   phone: row.role === "recruiter" ? row.recruiter_phone || "" : row.candidate_phone || "",
-  location: row.role === "recruiter" ? "" : row.address || "",
+  location: row.role === "recruiter" ? row.recruiter_address || "" : row.address || "",
+  address: row.role === "recruiter" ? row.recruiter_address || "" : row.address || "",
+  website: row.role === "recruiter" ? row.recruiter_website || "" : "",
+  linkedin: row.role === "recruiter" ? row.recruiter_linkedin || "" : "",
+  industry: row.role === "recruiter" ? row.recruiter_industry || "" : "",
+  company_size: row.role === "recruiter" ? row.recruiter_company_size || "" : "",
+  tax_code: row.role === "recruiter" ? row.recruiter_tax_code || "" : "",
+  description: row.role === "recruiter" ? row.recruiter_description || "" : "",
   dob: row.role === "recruiter" ? "" : row.candidate_dob || "", 
   experience: "",
   job_type: "",
@@ -33,8 +46,16 @@ router.get("/me", requireAuth, async (req, res) => {
           c.address,
           c.dob AS candidate_dob,
           r.company_name,
+          r.company_name AS recruiter_name,
           r.email AS recruiter_email,
-          r.phone AS recruiter_phone
+            r.phone AS recruiter_phone,
+            r.address AS recruiter_address,
+            r.website AS recruiter_website,
+            r.linkedin AS recruiter_linkedin,
+            r.industry AS recruiter_industry,
+            r.company_size AS recruiter_company_size,
+            r.tax_code AS recruiter_tax_code,
+            r.description AS recruiter_description
        FROM users u
        LEFT JOIN candidates c ON c.id = u.id
        LEFT JOIN recruiters r ON r.id = u.id
@@ -53,7 +74,22 @@ router.get("/me", requireAuth, async (req, res) => {
 });
 
 router.patch("/me", requireAuth, async (req, res) => {
-  const { name, phone, location, dob} = req.body;
+  const {
+    name,
+    full_name: fullName,
+    job_title: jobTitle,
+    phone,
+    location,
+    address,
+    dob,
+    website,
+    linkedin,
+    industry,
+    company_size: companySize,
+    tax_code: taxCode,
+    description,
+    company_name: companyName,
+  } = req.body;
 
   try {
     const roleResult = await pool.query("SELECT role, login_name FROM users WHERE id = $1", [
@@ -67,13 +103,34 @@ router.patch("/me", requireAuth, async (req, res) => {
     const { role, login_name: loginName } = roleResult.rows[0];
 
     if (role === "recruiter") {
+      const normalizedAddress = address ?? location;
+      const normalizedCompanyName = companyName ?? name;
+
       const recruiterUpdate = await pool.query(
         `UPDATE recruiters
          SET company_name = COALESCE($1, company_name),
-             phone = COALESCE($2, phone)
-         WHERE id = $3
-         RETURNING id, company_name, email, phone`,
-        [name, phone, req.user.id]
+             phone = COALESCE($2, phone),
+             address = COALESCE($3, address),
+             website = COALESCE($4, website),
+             linkedin = COALESCE($5, linkedin),
+             industry = COALESCE($6, industry),
+             company_size = COALESCE($7, company_size),
+             tax_code = COALESCE($8, tax_code),
+             description = COALESCE($9, description)
+         WHERE id = $10
+         RETURNING id, company_name, email, phone, address, website, linkedin, industry, company_size, tax_code, description`,
+        [
+          normalizedCompanyName,
+          phone,
+          normalizedAddress,
+          website,
+          linkedin,
+          industry,
+          companySize,
+          taxCode,
+          description,
+          req.user.id,
+        ]
       );
 
       if (recruiterUpdate.rows.length === 0) {
@@ -86,8 +143,16 @@ router.patch("/me", requireAuth, async (req, res) => {
           role,
           login_name: loginName,
           company_name: recruiterUpdate.rows[0].company_name,
+          recruiter_name: recruiterUpdate.rows[0].company_name,
           recruiter_email: recruiterUpdate.rows[0].email,
           recruiter_phone: recruiterUpdate.rows[0].phone,
+          recruiter_address: recruiterUpdate.rows[0].address,
+          recruiter_website: recruiterUpdate.rows[0].website,
+          recruiter_linkedin: recruiterUpdate.rows[0].linkedin,
+          recruiter_industry: recruiterUpdate.rows[0].industry,
+          recruiter_company_size: recruiterUpdate.rows[0].company_size,
+          recruiter_tax_code: recruiterUpdate.rows[0].tax_code,
+          recruiter_description: recruiterUpdate.rows[0].description,
         })
       );
     }

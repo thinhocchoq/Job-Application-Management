@@ -28,6 +28,10 @@ CREATE TABLE recruiters (
     website VARCHAR(500),
     address VARCHAR(500),
     industry VARCHAR(100),
+    linkedin VARCHAR(500),
+    company_size VARCHAR(50),
+    tax_code VARCHAR(50),
+    description TEXT,
     CONSTRAINT fk_recruiter_user
       FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -45,7 +49,7 @@ CREATE TABLE job_posts (
     employment_type VARCHAR(100),
     responsibilities TEXT,
     requirements TEXT,
-    type varchar(100),
+    status varchar(20),
     CONSTRAINT fk_job_recruiter
       FOREIGN KEY (recruiter_id) REFERENCES recruiters(id) ON DELETE CASCADE
 );

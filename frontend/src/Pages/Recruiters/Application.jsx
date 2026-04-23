@@ -226,16 +226,6 @@ const Application = () => {
             <h1 className="text-3xl font-bold text-gray-900">Job Applications</h1>
             <p className="text-gray-500 mt-1">Streamlining the journey from application to hire.</p>
           </div>
-          <div className="flex gap-3">
-            <button className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg flex items-center gap-2 hover:bg-gray-200">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
-              Configure Funnel
-            </button>
-            <button className="px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg flex items-center gap-2 hover:bg-emerald-700 shadow-sm">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-              Bulk Import CVs
-            </button>
-          </div>
         </div>
 
         {/* Metric Cards */}

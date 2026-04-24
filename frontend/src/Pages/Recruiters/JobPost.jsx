@@ -388,15 +388,6 @@ const JobPost = () => {
                               <FaEye size={16} />
                             </button>
                             <button
-                              onClick={() => navigate("/recruiter/application")}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="View applications"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                            </button>
-                            <button
                               onClick={() => setEditingJob(job)}
                               className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                               title="Edit job"
@@ -466,8 +457,9 @@ const JobPost = () => {
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
+                className="flex-1 py-2.5 inline-flex items-center justify-center gap-2 bg-[#dc2626] text-white border border-[#dc2626] rounded-xl font-semibold hover:bg-[#b91c1c] hover:border-[#b91c1c] transition-colors shadow-sm"
               >
+                <FaTrashAlt size={14} />
                 Delete
               </button>
             </div>

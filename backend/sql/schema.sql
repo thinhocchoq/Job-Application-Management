@@ -1,5 +1,20 @@
 CREATE TYPE user_role AS ENUM ('candidate', 'recruiter');
-CREATE TYPE application_status AS ENUM ('applied', 'reviewed', 'accepted', 'rejected');
+CREATE TYPE application_status AS ENUM ('applied', 'reviewed', 'scheduled_interview', 'accepted', 'rejected');
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_enum e ON e.enumtypid = t.oid
+    WHERE t.typname = 'application_status'
+      AND e.enumlabel = 'scheduled_interview'
+  ) THEN
+    RETURN;
+  END IF;
+
+  ALTER TYPE application_status ADD VALUE 'scheduled_interview';
+END $$;
 
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
@@ -61,12 +76,34 @@ CREATE TABLE applications (
     applied_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     cv_file_path VARCHAR(255),
     status application_status NOT NULL DEFAULT 'applied',
+    rejection_reason TEXT,
+    rejection_email_body TEXT,
     CONSTRAINT fk_app_candidate
       FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE,
     CONSTRAINT fk_app_job
       FOREIGN KEY (job_post_id) REFERENCES job_posts(id) ON DELETE CASCADE,
     CONSTRAINT uq_candidate_job UNIQUE (candidate_id, job_post_id)
 );
+
+CREATE TABLE interviews (
+    id BIGSERIAL PRIMARY KEY,
+    application_id BIGINT NOT NULL,
+    recruiter_id BIGINT NOT NULL,
+    interviewer_name VARCHAR(255) NOT NULL,
+    interview_datetime TIMESTAMPTZ NOT NULL,
+    mode VARCHAR(30) NOT NULL DEFAULT 'online',
+    meet_link VARCHAR(500),
+    location VARCHAR(255),
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_interviews_application
+      FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+    CONSTRAINT fk_interviews_recruiter
+      FOREIGN KEY (recruiter_id) REFERENCES recruiters(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_interviews_application_id ON interviews(application_id);
+CREATE INDEX IF NOT EXISTS idx_interviews_recruiter_id ON interviews(recruiter_id);
 
 CREATE TABLE saved_jobs (
     id BIGSERIAL PRIMARY KEY,

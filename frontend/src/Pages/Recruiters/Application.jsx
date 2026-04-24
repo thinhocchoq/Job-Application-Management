@@ -14,6 +14,11 @@ const stageMetaByStatus = {
     stageColor: 'text-blue-700 bg-blue-100',
     stageDot: 'bg-blue-500',
   },
+  scheduled_interview: {
+    stage: 'SCHEDULED INTERVIEW',
+    stageColor: 'text-purple-700 bg-purple-100',
+    stageDot: 'bg-purple-500',
+  },
   applied: {
     stage: 'CV SCREENING',
     stageColor: 'text-emerald-700 bg-emerald-100',
@@ -35,6 +40,10 @@ const actionByStatus = {
     primaryAction: 'Pass to Final ->',
     secondaryAction: 'Interview Prep',
   },
+  scheduled_interview: {
+    primaryAction: 'Reschedule',
+    secondaryAction: 'Interview Details',
+  },
   applied: {
     primaryAction: 'Book Screen',
     secondaryAction: 'Quick View',
@@ -48,6 +57,7 @@ const actionByStatus = {
 const scoreByStatus = {
   accepted: 94,
   reviewed: 82,
+  scheduled_interview: 86,
   applied: 78,
   rejected: 45,
 };
@@ -178,7 +188,7 @@ const Application = () => {
   const metrics = useMemo(() => {
     const pendingReview = filteredApplications.filter((item) => item.status === 'applied').length;
     const initialScreening = pendingReview;
-    const interviewStage = filteredApplications.filter((item) => item.status === 'reviewed').length;
+    const interviewStage = filteredApplications.filter((item) => item.status === 'reviewed' || item.status === 'scheduled_interview').length;
     const offersOut = filteredApplications.filter((item) => item.status === 'accepted').length;
 
     return {

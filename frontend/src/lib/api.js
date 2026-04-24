@@ -147,9 +147,27 @@ export const applicationsApi = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+  reject: (id, payload) =>
+    request(`/applications/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  offer: (id, payload) =>
+    request(`/applications/${id}/offer`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   remove: (id) =>
     request(`/applications/${id}`, {
       method: "DELETE",
+    }),
+};
+
+export const interviewsApi = {
+  create: (payload) =>
+    request("/interviews", {
+      method: "POST",
+      body: JSON.stringify(payload),
     }),
 };
 

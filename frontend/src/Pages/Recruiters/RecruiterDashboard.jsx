@@ -86,7 +86,7 @@ const RecruiterDashboard = () => {
       return new Date(j.deadline) >= new Date();
     }).length;
     const totalCandidates = applications.length;
-    const interviews = applications.filter((a) => a.status === "reviewed" || a.status === "interview").length;
+    const interviews = applications.filter((a) => a.status === "reviewed" || a.status === "interview" || a.status === "scheduled_interview").length;
     const offers = applications.filter((a) => a.status === "accepted").length;
     const pending = applications.filter((a) => a.status === "applied").length;
 
@@ -113,7 +113,7 @@ const RecruiterDashboard = () => {
         counts.offered += 1;
         return;
       }
-      if (status === "reviewed" || status === "interview") {
+      if (status === "reviewed" || status === "interview" || status === "scheduled_interview") {
         counts.interview += 1;
         return;
       }
@@ -155,7 +155,7 @@ const RecruiterDashboard = () => {
     const s = (status || "").toLowerCase();
     if (s === "accepted" || s === "offered")
       return <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">Offer</span>;
-    if (s === "reviewed" || s === "interview")
+    if (s === "reviewed" || s === "interview" || s === "scheduled_interview")
       return <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">Interview</span>;
     if (s === "rejected")
       return <span className="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">Rejected</span>;

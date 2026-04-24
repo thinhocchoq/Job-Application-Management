@@ -33,3 +33,57 @@ export const testDbConnection = async () => {
     client.release();
   }
 };
+
+export const ensureApplicationStatusEnum = async () => {
+  const client = await pool.connect();
+  try {
+    await client.query(
+      `DO $$
+       BEGIN
+         IF NOT EXISTS (
+           SELECT 1
+           FROM pg_type t
+           JOIN pg_enum e ON e.enumtypid = t.oid
+           WHERE t.typname = 'application_status'
+             AND e.enumlabel = 'scheduled_interview'
+         ) THEN
+           ALTER TYPE application_status ADD VALUE 'scheduled_interview' AFTER 'reviewed';
+         END IF;
+       END $$;`
+    );
+  } finally {
+    client.release();
+  }
+};
+
+export const ensureApplicationRejectionColumns = async () => {
+  const client = await pool.connect();
+  try {
+    await client.query(
+      `DO $$
+       BEGIN
+         IF NOT EXISTS (
+           SELECT 1
+           FROM information_schema.columns
+           WHERE table_schema = 'public'
+             AND table_name = 'applications'
+             AND column_name = 'rejection_reason'
+         ) THEN
+           ALTER TABLE applications ADD COLUMN rejection_reason TEXT;
+         END IF;
+
+         IF NOT EXISTS (
+           SELECT 1
+           FROM information_schema.columns
+           WHERE table_schema = 'public'
+             AND table_name = 'applications'
+             AND column_name = 'rejection_email_body'
+         ) THEN
+           ALTER TABLE applications ADD COLUMN rejection_email_body TEXT;
+         END IF;
+       END $$;`
+    );
+  } finally {
+    client.release();
+  }
+};

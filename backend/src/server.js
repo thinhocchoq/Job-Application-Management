@@ -4,13 +4,14 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { testDbConnection } from "./config/db.js";
+import { ensureApplicationRejectionColumns, ensureApplicationStatusEnum, testDbConnection } from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import applicationRoutes from "./routes/applications.js";
 import jobPostRoutes from "./routes/jobPosts.js";
 import savedJobsRoutes from "./routes/savedJobs.js";
 import messageRoutes from "./routes/messages.js";
+import interviewRoutes from "./routes/interviews.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +53,7 @@ app.use("/api/applications", applicationRoutes);
 app.use("/api/job-posts", jobPostRoutes);
 app.use("/api/saved-jobs", savedJobsRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/interviews", interviewRoutes);
 
 app.use((err, _req, res, _next) => {
   if (process.env.NODE_ENV !== "test") {
@@ -84,6 +86,8 @@ const startServer = async () => {
   }
 
   await testDbConnection();
+  await ensureApplicationStatusEnum();
+  await ensureApplicationRejectionColumns();
   app.listen(port, () => {
     console.log(`API server running on http://localhost:${port}`);
   });

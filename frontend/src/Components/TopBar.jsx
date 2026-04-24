@@ -3,14 +3,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { messagesApi } from '../lib/api';
 import { FaBell } from "react-icons/fa";
 
-const TopBar = ({ userName, userEmail }) => {
+const TopBar = ({ userName, userEmail, roleOverride }) => {
   const location = useLocation();
 
   const validRoles = ['candidate', 'recruiter'];
 
   const firstSegment = location.pathname.split('/')[1];
 
-  const currentRole = validRoles.includes(firstSegment) ? firstSegment : 'candidate';
+  const pathRole = validRoles.includes(firstSegment) ? firstSegment : 'candidate';
+  const currentRole = validRoles.includes(roleOverride) ? roleOverride : pathRole;
+  const isRecruiter = currentRole === "recruiter";
 
   const navLinkStyle = (path) => {
     const isActive = location.pathname.includes(path);
@@ -29,8 +31,17 @@ const TopBar = ({ userName, userEmail }) => {
           </Link>
           
           <nav className="hidden md:flex items-center gap-6 mt-1 text-sm tracking-wide">
-            <Link to={`/${currentRole}/job`} className={navLinkStyle(`/${currentRole}/job`)}>Find Jobs</Link>
-            <Link to={`/${currentRole}/applications`} className={navLinkStyle(`/${currentRole}/applications`)}>Applications</Link>
+            {isRecruiter ? (
+              <>
+                <Link to="/recruiter/job" className={navLinkStyle('/recruiter/job')}>Job Post</Link>
+                <Link to="/recruiter/application" className={navLinkStyle('/recruiter/application')}>Applications</Link>
+              </>
+            ) : (
+              <>
+                <Link to={`/${currentRole}/job`} className={navLinkStyle(`/${currentRole}/job`)}>Find Jobs</Link>
+                <Link to={`/${currentRole}/applications`} className={navLinkStyle(`/${currentRole}/applications`)}>Applications</Link>
+              </>
+            )}
           </nav>
         </div>
 

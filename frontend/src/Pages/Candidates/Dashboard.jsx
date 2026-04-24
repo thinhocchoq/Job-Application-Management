@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { applicationsApi, usersApi } from "../../lib/api";
 import TopBarDashboard from "../../Components/TopBarDashboard";
 import { FaUserCircle, FaSearch, FaBookOpen } from "react-icons/fa";
-import { BsThreeDotsVertical } from "react-icons/bs";
 import { formatMessageTime  } from '../../utils/format';
 
 const Dashboard = () => {
@@ -39,8 +38,11 @@ const Dashboard = () => {
   }, {});
 
   const totalApplications = jobs.length;
-  const totalInterviews = jobStatusCount.interview || 0;
-  const totalOffers = jobStatusCount.offered || 0;
+  const totalInterviews = (jobStatusCount.interview || 0) + (jobStatusCount.scheduled_interview || 0);
+  const totalOffers = jobs.filter((job) => {
+    const normalized = (job.status || '').toLowerCase();
+    return normalized === 'offered' || normalized === 'accepted';
+  }).length;
 
   const getGreeting = () => {
     const currentHour = new Date().getHours();
@@ -53,6 +55,7 @@ const Dashboard = () => {
     switch (status?.toLowerCase()) {
       case 'interview':
       case 'interviewing':
+      case 'scheduled_interview':
         return <span className="px-3 py-1 bg-[#e6f4ea] text-[#188155] text-[11px] font-bold tracking-wider uppercase rounded-full">Interviewing</span>;
       case 'applied':
         return <span className="px-3 py-1 bg-[#e8f0fe] text-[#1967d2] text-[11px] font-bold tracking-wider uppercase rounded-full">Applied</span>;
@@ -102,15 +105,15 @@ const Dashboard = () => {
         <div className="bg-[#116843] p-6 rounded-2xl shadow-sm flex flex-col justify-between text-white">
           <p className="text-xs font-bold text-emerald-100 uppercase tracking-wider mb-2">Offers</p>
           <div className="flex items-baseline gap-3">
-            <span className="text-5xl font-bold">{totalOffers || 1}</span>
-            <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded tracking-wider">NEW</span>
+            <span className="text-5xl font-bold">{totalOffers}</span>
+            {totalOffers > 0 && <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded tracking-wider">NEW</span>}
           </div>
         </div>
 
         </div>
 
         {/* --- MAIN LAYOUT (2 COLUMNS) --- */}
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-8 mt-4">
         
         {/* CỘT TRÁI: Recent Applications */}
         <div className="w-full lg:w-2/3">
@@ -142,11 +145,7 @@ const Dashboard = () => {
                     <div className="w-28 flex justify-end">
                       {renderStatusBadge(job.status)}
                     </div>
-                    <button className="text-gray-400 hover:text-gray-700 p-2">
-                      <BsThreeDotsVertical />
-                    </button>
                   </div>
-
                 </div>
               ))
             ) : (

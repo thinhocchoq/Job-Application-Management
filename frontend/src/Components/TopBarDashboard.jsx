@@ -22,6 +22,7 @@ const TopBarDashboard = ({
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingInbox, setLoadingInbox] = useState(false);
   const [inboxError, setInboxError] = useState('');
+  const [selectedMessage, setSelectedMessage] = useState(null);
 
   const firstSegment = location.pathname.split('/')[1];
   const isCandidate = ['candidate', 'recruiter'].includes(firstSegment) 
@@ -39,6 +40,39 @@ const TopBarDashboard = ({
       .then(payload => mounted && setUnreadCount(payload?.unreadCount || 0))
       .catch(() => mounted && setUnreadCount(0));
     return () => { mounted = false; };
+  }, [isCandidate]);
+
+  useEffect(() => {
+    if (!isCandidate) return;
+
+    let mounted = true;
+    const refreshUnreadCount = async () => {
+      try {
+        const payload = await messagesApi.unreadCount();
+        if (mounted) {
+          setUnreadCount(payload?.unreadCount || 0);
+        }
+      } catch {
+        if (mounted) {
+          setUnreadCount(0);
+        }
+      }
+    };
+
+    const intervalId = window.setInterval(refreshUnreadCount, 15000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshUnreadCount();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [isCandidate]);
 
   // Xử lý Click Outside
@@ -85,6 +119,12 @@ const TopBarDashboard = ({
     } catch { /* Bỏ qua lỗi để UI phản hồi mượt */ }
   };
 
+  const handleOpenMessage = async (message) => {
+    if (!message) return;
+    await handleMarkRead(message);
+    setSelectedMessage(message);
+  };
+
   // 2. Gom nhóm logic hiển thị nội dung dropdown
   const renderInboxContent = () => {
     if (loadingInbox) return <div className="px-4 py-8 text-center text-sm text-gray-500">Đang tải tin nhắn...</div>;
@@ -95,7 +135,7 @@ const TopBarDashboard = ({
       <button
         key={message.id}
         type="button"
-        onClick={() => handleMarkRead(message)}
+        onClick={() => handleOpenMessage(message)}
         className={`w-full text-left px-4 py-3 border-b border-white hover:bg-gray-50 transition-colors ${message.isRead ? 'bg-white' : 'bg-emerald-50/40'}`}
       >
         <div className="flex items-start justify-between gap-3">
@@ -159,6 +199,40 @@ const TopBarDashboard = ({
               </div>
             )}
           </div>
+
+          {selectedMessage && (
+            <div className="fixed inset-0 z-[60] bg-black/35 flex items-center justify-center p-4">
+              <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{selectedMessage.subject}</p>
+                    <p className="text-xs text-gray-500 mt-1">Từ: {selectedMessage.senderName || 'Recruiter'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMessage(null)}
+                    className="text-gray-400 hover:text-gray-700"
+                    aria-label="Close message detail"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="px-5 py-4">
+                  <p className="text-sm text-gray-700 whitespace-pre-line leading-6">{selectedMessage.content}</p>
+                  <p className="text-xs text-gray-400 mt-4">{formatMessageTime(selectedMessage.createdAt)}</p>
+                </div>
+                <div className="px-5 py-4 border-t border-gray-100 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMessage(null)}
+                    className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Thông tin người dùng */}
           <div className="flex items-center gap-3 ml-2">

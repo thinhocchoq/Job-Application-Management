@@ -64,6 +64,7 @@ const Jobsearch = () => {
 
   const [savingJobIds, setSavingJobIds] = useState(new Set());
   const [savedJobIds, setSavedJobIds] = useState(new Set());
+  const [savedJobIdMap, setSavedJobIdMap] = useState(new Map());
 
   const [showFilters, setShowFilters] = useState(false);
   const [selectedJobType, setSelectedJobType] = useState("");
@@ -102,8 +103,23 @@ const Jobsearch = () => {
           jobPostsApi.list(debouncedSearch),
           savedJobsApi.list(),
         ]);
-        setJobs(jobsData);
-        setSavedJobIds(new Set(savedData.map((j) => j.jobPostId || j.id)));
+        const normalizedJobs = (Array.isArray(jobsData) ? jobsData : []).map((job) => ({
+          ...job,
+          id: Number(job.id),
+        }));
+        setJobs(normalizedJobs);
+        const nextSavedIds = new Set();
+        const nextSavedMap = new Map();
+        savedData.forEach((item) => {
+          const jobId = Number(item.jobPostId ?? item.jobId);
+          const savedId = Number(item.id);
+          if (Number.isInteger(jobId) && jobId > 0 && Number.isInteger(savedId) && savedId > 0) {
+            nextSavedIds.add(jobId);
+            nextSavedMap.set(jobId, savedId);
+          }
+        });
+        setSavedJobIds(nextSavedIds);
+        setSavedJobIdMap(nextSavedMap);
         setErrorMessage("");
       } catch (error) {
         setErrorMessage(error.message || "Failed to load jobs");
@@ -136,15 +152,36 @@ const Jobsearch = () => {
   };
 
   const handleSaveClick = async (jobId) => {
-    if (savingJobIds.has(jobId) || savedJobIds.has(jobId)) return;
+    if (savingJobIds.has(jobId)) return;
     setSavingJobIds((prev) => new Set([...prev, jobId]));
     try {
       if (savedJobIds.has(jobId)) {
-        await savedJobsApi.remove(jobId);
-        setSavedJobIds((prev) => { const n = new Set(prev); n.delete(jobId); return n; });
+        const savedId = savedJobIdMap.get(jobId);
+        if (savedId) {
+          await savedJobsApi.remove(savedId);
+        }
+        setSavedJobIds((prev) => {
+          const n = new Set(prev);
+          n.delete(jobId);
+          return n;
+        });
+        setSavedJobIdMap((prev) => {
+          const n = new Map(prev);
+          n.delete(jobId);
+          return n;
+        });
       } else {
-        await savedJobsApi.save(jobId);
+        const saved = await savedJobsApi.save(jobId);
+        const savedPayload = Array.isArray(saved) ? saved[0] : saved;
+        const savedId = Number(savedPayload?.id);
         setSavedJobIds((prev) => new Set([...prev, jobId]));
+        if (Number.isInteger(savedId) && savedId > 0) {
+          setSavedJobIdMap((prev) => {
+            const n = new Map(prev);
+            n.set(jobId, savedId);
+            return n;
+          });
+        }
       }
     } catch (error) {
       console.error("Save/unsave failed:", error);
@@ -347,7 +384,12 @@ const Jobsearch = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {filteredJobs.map((job) => (
+            {filteredJobs.map((job) => {
+              const normalizedJobId = Number(job.id);
+              const isSaved = Number.isInteger(normalizedJobId) && savedJobIds.has(normalizedJobId);
+              const isSaving = Number.isInteger(normalizedJobId) && savingJobIds.has(normalizedJobId);
+
+              return (
               <div key={job.id} className="group bg-white rounded-2xl p-6 border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all duration-200 flex flex-col">
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-14 h-14 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl flex items-center justify-center border border-emerald-100 overflow-hidden shrink-0">
@@ -361,10 +403,10 @@ const Jobsearch = () => {
                     {isNewJob(job.createdAt) && (
                       <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-full">New</span>
                     )}
-                    <button onClick={() => handleSaveClick(job.id)} disabled={savingJobIds.has(job.id)}
-                      className={`p-1.5 rounded-lg transition-colors ${savedJobIds.has(job.id) ? "text-emerald-600 hover:text-emerald-700" : "text-gray-300 hover:text-emerald-600"}`}
-                      title={savedJobIds.has(job.id) ? "Unsave job" : "Save job"}>
-                      {savedJobIds.has(job.id) ? <FaBookmark size={20} /> : <FaRegBookmark size={20} />}
+                    <button onClick={() => handleSaveClick(normalizedJobId)} disabled={isSaving}
+                      className={`p-1.5 rounded-lg transition-colors ${isSaved ? "text-emerald-600 hover:text-emerald-700" : "text-gray-300 hover:text-emerald-600"}`}
+                      title={isSaved ? "Unsave job" : "Save job"}>
+                      {isSaved ? <FaBookmark size={20} /> : <FaRegBookmark size={20} />}
                     </button>
                   </div>
                 </div>
@@ -384,7 +426,7 @@ const Jobsearch = () => {
                   <button onClick={() => navigate(`/jobs/${job.id}`)} className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">View Details</button>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
 

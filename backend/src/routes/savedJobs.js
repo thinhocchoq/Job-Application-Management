@@ -8,6 +8,7 @@ const mapSavedJob = (row) => ({
   id: row.id,
   candidateId: row.candidate_id,
   jobId: row.job_id,
+    jobPostId: row.job_id,
   jobTitle: row.job_title,
   companyName: row.company_name,
   location: row.location,
@@ -29,6 +30,24 @@ router.post("/", requireAuth, async (req, res) => {
     }
 
     try {
+        const existingSavedJob = await pool.query(
+            `SELECT id
+             FROM saved_jobs
+             WHERE candidate_id = $1 AND job_post_id = $2
+             LIMIT 1`,
+            [req.user.id, jobIdNum]
+        );
+
+        if (existingSavedJob.rows.length > 0) {
+            return res.status(200).json({
+                id: existingSavedJob.rows[0].id,
+                candidateId: req.user.id,
+                jobId: jobIdNum,
+                jobPostId: jobIdNum,
+                status: "saved",
+            });
+        }
+
         const jobCheck = await pool.query(
             "SELECT id FROM job_posts WHERE id = $1",
             [jobIdNum]
@@ -41,10 +60,14 @@ router.post("/", requireAuth, async (req, res) => {
         const saveJobs = await pool.query(
             `INSERT INTO saved_jobs (candidate_id, job_post_id, saved_at)
              VALUES ($1, $2, NOW())
-             RETURNING *`,
+             RETURNING
+                id,
+                candidate_id,
+                job_post_id AS job_id,
+                saved_at`,
             [req.user.id, jobIdNum]
         );
-        return res.status(201).json([saveJobs.rows[0]]);
+        return res.status(201).json(mapSavedJob(saveJobs.rows[0]));
     } catch (error) {
         if (error.code === "23505") {
             return res.status(409).json({ message: "This job is already saved" });

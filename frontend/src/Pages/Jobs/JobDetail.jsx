@@ -22,8 +22,9 @@ const JobDetail = () => {
   const [userEmail, setUserEmail] = useState("");
   const [jobs, setJobs] = useState([]);
   const [jobDetail, setJobDetail] = useState("");
-  const [savingJobIds, setSavingJobIds] = useState([]);
-  const [savedJobIds, setSavedJobIds] = useState([]);
+  const [savingJobIds, setSavingJobIds] = useState(new Set());
+  const [savedJobIds, setSavedJobIds] = useState(new Set());
+  const [savedJobIdMap, setSavedJobIdMap] = useState(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [isApplied, setIsApplied] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -62,18 +63,51 @@ const JobDetail = () => {
   };
 
   const handleSaveClick = async (jobId) => {
-    if (savingJobIds.includes(jobId) || savedJobIds.includes(jobId)) return;
-    setSavingJobIds((prev) => [...prev, jobId]);
+    if (!jobId || savingJobIds.has(jobId)) return;
+    setSavingJobIds((prev) => new Set([...prev, jobId]));
     try {
-      await savedJobsApi.save(jobId); 
-      setSavedJobIds((prev) => [...prev, jobId]);
-      alert("Đã lưu công việc!");
+      if (savedJobIds.has(jobId)) {
+        const savedId = savedJobIdMap.get(jobId);
+        if (savedId) {
+          await savedJobsApi.remove(savedId);
+        }
+        setSavedJobIds((prev) => {
+          const next = new Set(prev);
+          next.delete(jobId);
+          return next;
+        });
+        setSavedJobIdMap((prev) => {
+          const next = new Map(prev);
+          next.delete(jobId);
+          return next;
+        });
+      } else {
+        const saved = await savedJobsApi.save(jobId);
+        const savedPayload = Array.isArray(saved) ? saved[0] : saved;
+        const savedId = Number(savedPayload?.id);
+        setSavedJobIds((prev) => new Set([...prev, jobId]));
+        if (Number.isInteger(savedId) && savedId > 0) {
+          setSavedJobIdMap((prev) => {
+            const next = new Map(prev);
+            next.set(jobId, savedId);
+            return next;
+          });
+        }
+      }
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
-      alert("Lưu thất bại, có thể bạn đã lưu job này rồi.");
     } finally {
-      setSavingJobIds((prev) => prev.filter(id => id !== jobId));
+      setSavingJobIds((prev) => {
+        const next = new Set(prev);
+        next.delete(jobId);
+        return next;
+      });
     }
+  };
+
+  const normalizeMultilineText = (value) => {
+    if (typeof value !== "string" || value.trim().length === 0) return "Null";
+    return value.replace(/\\n/g, "\n");
   };
 
   const checkDeadline = (value) => {
@@ -143,7 +177,43 @@ const JobDetail = () => {
     setRecruiterStatus(checkDeadline(jobDetail?.deadline) ? "closed" : "open");
   }, [jobDetail, isRecruiterView]);
 
-  const isSaved = savedJobIds.includes(jobDetail?.id);
+  useEffect(() => {
+    if (isRecruiterView) return;
+
+    let mounted = true;
+    const loadSavedJobs = async () => {
+      try {
+        const savedList = await savedJobsApi.list();
+        if (!mounted) return;
+
+        const nextSavedIds = new Set();
+        const nextSavedMap = new Map();
+
+        (Array.isArray(savedList) ? savedList : []).forEach((item) => {
+          const jobId = Number(item.jobPostId ?? item.jobId);
+          const savedId = Number(item.id);
+          if (Number.isInteger(jobId) && jobId > 0) {
+            nextSavedIds.add(jobId);
+            if (Number.isInteger(savedId) && savedId > 0) {
+              nextSavedMap.set(jobId, savedId);
+            }
+          }
+        });
+
+        setSavedJobIds(nextSavedIds);
+        setSavedJobIdMap(nextSavedMap);
+      } catch (error) {
+        console.error("Failed to load saved jobs:", error);
+      }
+    };
+
+    loadSavedJobs();
+    return () => {
+      mounted = false;
+    };
+  }, [isRecruiterView]);
+
+  const isSaved = savedJobIds.has(jobDetail?.id);
   const isClosed = checkDeadline(jobDetail?.deadline);
   const currentRecruiterStatus = isClosed ? "closed" : "open";
   const hasStatusChanged = recruiterStatus !== currentRecruiterStatus;
@@ -197,7 +267,7 @@ const JobDetail = () => {
   return (
     <div className='min-h-screen bg-gray-50 text-gray-800 font-sans'>
       {/* Breadcrumb */}
-      <TopBar userName={userName} userEmail={userEmail} />
+      <TopBar userName={userName} userEmail={userEmail} roleOverride={currentRole} />
 
       <div className="max-w-6xl mx-auto px-6 pt-6 pb-4 text-sm text-gray-500">
         <span className= "hover:text-emerald-700 transition-colors">Jobs Detail</span> 
@@ -271,7 +341,11 @@ const JobDetail = () => {
               <>
                 <button 
                   onClick={() => handleSaveClick(jobDetail?.id)}
-                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
+                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 border font-semibold rounded-lg transition ${
+                    isSaved
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                      : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                  }`}
                 >
                   {isSaved ? <FaBookmark className="text-emerald-600" /> : <FaRegBookmark />} 
                   {isSaved ? "Saved" : "Save Job"}
@@ -301,7 +375,7 @@ const JobDetail = () => {
                 <h2 className="text-xl font-bold text-gray-900">Job Description</h2>
               </div>
               <div className="text-gray-600 leading-relaxed whitespace-pre-line">
-                {jobDetail?.description || "Null"}
+                {normalizeMultilineText(jobDetail?.description)}
               </div>
             </div>
 
@@ -312,7 +386,7 @@ const JobDetail = () => {
                 <h2 className="text-xl font-bold text-gray-900">Key Responsibilities</h2>
               </div>
               <div className="text-gray-600 leading-relaxed whitespace-pre-line">
-                {jobDetail?.responsibilities || "Null"}
+                {normalizeMultilineText(jobDetail?.responsibilities)}
               </div>
             </div>
 
@@ -323,7 +397,7 @@ const JobDetail = () => {
                 <h2 className="text-xl font-bold text-gray-900">Requirements</h2>
               </div>
               <div className="text-gray-600 leading-relaxed whitespace-pre-line">
-                {jobDetail?.requirements || "Null"}
+                {normalizeMultilineText(jobDetail?.requirements)}
               </div>
             </div>
 

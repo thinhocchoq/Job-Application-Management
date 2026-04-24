@@ -52,6 +52,7 @@ const toDbStatus = (status) => {
     case "applied":
       return "applied";
     case "interview":
+    case "scheduled_interview":
       return "reviewed";
     case "offered":
       return "accepted";
@@ -68,6 +69,8 @@ const toClientStatus = (status) => {
       return "interview";
     case "accepted":
       return "offered";
+    case "scheduled_interview":
+      return "interview";
     default:
       return status;
   }
@@ -84,6 +87,7 @@ const mapRow = (row) => ({
 
 const mapRecruiterRow = (row) => ({
   id: row.id,
+  candidateId: row.candidate_id,
   jobPostId: row.job_post_id,
   applicationDate: row.application_date,
   status: row.status,
@@ -181,6 +185,7 @@ router.get("/recruiter", requireAuth, async (req, res) => {
     const result = await pool.query(
       `SELECT
           a.id,
+          a.candidate_id,
           a.job_post_id,
           a.applied_at::date AS application_date,
           a.status,
@@ -220,6 +225,7 @@ router.get("/recruiter/:id", requireAuth, async (req, res) => {
     const result = await pool.query(
       `SELECT
           a.id,
+          a.candidate_id,
           a.job_post_id,
           a.applied_at::date AS application_date,
           a.status,
@@ -541,9 +547,9 @@ router.patch("/:id/status", requireAuth, async (req, res) => {
   }
 
   const { status } = req.body;
-  const validStatuses = new Set(["applied", "reviewed", "accepted", "rejected"]);
+  const validStatuses = new Set(["applied", "reviewed", "scheduled_interview", "accepted", "rejected"]);
   if (!status || !validStatuses.has(status)) {
-    return res.status(400).json({ message: "Invalid status. Must be one of: applied, reviewed, accepted, rejected" });
+    return res.status(400).json({ message: "Invalid status. Must be one of: applied, reviewed, scheduled_interview, accepted, rejected" });
   }
 
   try {
@@ -565,6 +571,166 @@ router.patch("/:id/status", requireAuth, async (req, res) => {
     return res.json({ id: applicationId, status });
   } catch (error) {
     return res.status(500).json({ message: "Failed to update application status", detail: error.message });
+  }
+});
+
+router.post("/:id/reject", requireAuth, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiter accounts can reject applications" });
+  }
+
+  const applicationId = Number(req.params.id);
+  if (!Number.isInteger(applicationId) || applicationId <= 0) {
+    return res.status(400).json({ message: "Invalid application id" });
+  }
+
+  const reason = typeof req.body.reason === "string" ? req.body.reason.trim() : "";
+  const emailBody = typeof req.body.emailBody === "string" ? req.body.emailBody.trim() : "";
+
+  if (!emailBody) {
+    return res.status(400).json({ message: "emailBody is required" });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const applicationResult = await client.query(
+      `SELECT a.id, a.candidate_id, a.job_post_id, jp.title AS job_title
+       FROM applications a
+       INNER JOIN job_posts jp ON jp.id = a.job_post_id
+       WHERE a.id = $1
+         AND jp.recruiter_id = $2
+       LIMIT 1`,
+      [applicationId, req.user.id]
+    );
+
+    if (applicationResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Application not found or you don't have permission to update it" });
+    }
+
+    const application = applicationResult.rows[0];
+
+    await client.query(
+      `UPDATE applications
+       SET status = 'rejected',
+           rejection_reason = $1,
+           rejection_email_body = $2
+       WHERE id = $3`,
+      [reason, emailBody, applicationId]
+    );
+
+    await client.query(
+      `INSERT INTO messages (
+         sender_recruiter_id,
+         receiver_candidate_id,
+         subject,
+         content,
+         job_post_id,
+         application_id
+       ) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        req.user.id,
+        application.candidate_id,
+        `Application update - ${application.job_title}`,
+        emailBody,
+        application.job_post_id,
+        applicationId,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    return res.json({ id: applicationId, status: "rejected", reason, emailBody });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    return res.status(500).json({ message: "Failed to reject application", detail: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+router.post("/:id/offer", requireAuth, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ message: "Only recruiter accounts can extend offers" });
+  }
+
+  const applicationId = Number(req.params.id);
+  if (!Number.isInteger(applicationId) || applicationId <= 0) {
+    return res.status(400).json({ message: "Invalid application id" });
+  }
+
+  const subject = typeof req.body.subject === "string" ? req.body.subject.trim() : "";
+  const emailBody = typeof req.body.content === "string" ? req.body.content.trim() : "";
+
+  if (!subject || !emailBody) {
+    return res.status(400).json({ message: "subject and content are required" });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const applicationResult = await client.query(
+      `SELECT a.id, a.candidate_id, a.job_post_id, jp.title AS job_title
+       FROM applications a
+       INNER JOIN job_posts jp ON jp.id = a.job_post_id
+       WHERE a.id = $1
+         AND jp.recruiter_id = $2
+       LIMIT 1`,
+      [applicationId, req.user.id]
+    );
+
+    if (applicationResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Application not found or you don't have permission to update it" });
+    }
+
+    const application = applicationResult.rows[0];
+
+    await client.query(
+      `UPDATE applications
+       SET status = 'accepted'
+       WHERE id = $1`,
+      [applicationId]
+    );
+
+    const messageResult = await client.query(
+      `INSERT INTO messages (
+         sender_recruiter_id,
+         receiver_candidate_id,
+         subject,
+         content,
+         job_post_id,
+         application_id
+       ) VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, created_at`,
+      [
+        req.user.id,
+        application.candidate_id,
+        subject,
+        emailBody,
+        application.job_post_id,
+        applicationId,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    return res.status(201).json({
+      id: applicationId,
+      status: "accepted",
+      messageId: messageResult.rows[0]?.id,
+      createdAt: messageResult.rows[0]?.created_at,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    return res.status(500).json({ message: "Failed to send offer", detail: error.message });
+  } finally {
+    client.release();
   }
 });
 

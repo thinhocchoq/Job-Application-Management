@@ -112,9 +112,11 @@ const Applications = () => {
   const jobsToDisplay = activeTab === "saved" ? savedJobs : jobs;
 
   const visibleJobs = jobsToDisplay.filter((job) => {
-      const matchesTab = activeTab === "all" || activeTab === "saved" || job.status?.toLowerCase() === activeTab;    
+      const normalizedStatus = job.status?.toLowerCase();
+      const displayStatus = normalizedStatus === 'scheduled_interview' ? 'interview' : normalizedStatus;
+      const matchesTab = activeTab === "all" || activeTab === "saved" || displayStatus === activeTab;    
       const matchesSearch =
-      normalizedSearch.length === 0 ||
+      normalizedSearch.length === 0 || 
       job.jobTitle?.toLowerCase().includes(normalizedSearch) ||
       job.companyName?.toLowerCase().includes(normalizedSearch);
 
@@ -122,12 +124,12 @@ const Applications = () => {
   });
 
   // Tính số lượng ứng tuyển đang ở vòng phỏng vấn
-  const interviewCount = jobs.filter(j => j.status?.toLowerCase() === 'interview').length;
+  const interviewCount = jobs.filter(j => ['interview', 'scheduled_interview', 'reviewed'].includes(j.status?.toLowerCase())).length;
 
   // Helper tạo màu cho Status Badge
   const getBadgeStyle = (status) => {
     const s = status?.toLowerCase();
-    if (s === 'interview') return 'bg-blue-100 text-blue-700';
+    if (s === 'interview' || s === 'scheduled_interview' || s === 'reviewed') return 'bg-blue-100 text-blue-700';
     if (s === 'applied') return 'bg-emerald-100 text-[#188155]';
     if (s === 'offered') return 'bg-[#188155] text-white';
     if (s === 'rejected') return 'bg-gray-200 text-gray-500';
@@ -136,75 +138,75 @@ const Applications = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#fbfcfa] px-8 pt-4 pb-12 lg:px-10 lg:pt-5 lg:pb-12">
-      
+    <div className="min-h-screen bg-[#fbfcfa]">
       <TopBarDashboard userName={userName} userEmail={userEmail} />
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-6 pb-12">
 
-      {/* --- HEADER --- */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">My Applications</h1>
-          <p className="text-gray-500">Track your journey across {jobs.length} open roles.</p>
+        {/* --- HEADER --- */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">My Applications</h1>
+            <p className="text-gray-500">Track your journey across {jobs.length} open roles.</p>
+          </div>
+          <div className="bg-emerald-50 px-6 py-3 rounded-2xl border border-emerald-100 flex flex-col items-center md:items-end">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Active Funnel</p>
+            <p className="text-2xl font-bold text-[#188155]">
+              {interviewCount < 10 ? `0${interviewCount}` : interviewCount} Interviews
+            </p>
+          </div>
         </div>
-        <div className="bg-emerald-50 px-6 py-3 rounded-2xl border border-emerald-100 flex flex-col items-center md:items-end">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Active Funnel</p>
-          <p className="text-2xl font-bold text-[#188155]">
-            {interviewCount < 10 ? `0${interviewCount}` : interviewCount} Interviews
+
+        {errorMessage && (
+          <p className="text-red-500 text-sm mb-4 bg-red-50 p-3 rounded-lg border border-red-100" role="alert">
+            {errorMessage}
           </p>
+        )}
+
+        {/* --- TABS BẰNG NÚT PILL (THAY THẾ KIỂU GẠCH CHÂN CŨ) --- */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {["all", "applied", "interview", "offered", "rejected", "saved"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2.5 rounded-full text-sm font-bold capitalize transition-all ${
+                activeTab === tab 
+                  ? "bg-[#188155] text-white shadow-sm" 
+                  : "bg-transparent text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {errorMessage && (
-        <p className="text-red-500 text-sm mb-4 bg-red-50 p-3 rounded-lg border border-red-100" role="alert">
-          {errorMessage}
-        </p>
-      )}
+        {/* --- THANH TÌM KIẾM & ĐỔI VIEW --- */}
+        <div className="flex justify-between items-center mb-6">
+          <form onSubmit={(e) => e.preventDefault()} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 w-full max-w-sm shadow-sm focus-within:ring-2 focus-within:ring-emerald-100 focus-within:border-emerald-400 transition-all">
+            <FaSearch className="text-gray-400 text-lg" />
+            <input
+              type="search"
+              placeholder="Search applications..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 focus:ring-0"
+            />
+          </form>
 
-      {/* --- TABS BẰNG NÚT PILL (THAY THẾ KIỂU GẠCH CHÂN CŨ) --- */}
-      <div className="flex flex-wrap gap-2 mb-8">
-        {["all", "applied", "interview", "offered", "rejected", "saved"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold capitalize transition-all ${
-              activeTab === tab 
-                ? "bg-[#188155] text-white shadow-sm" 
-                : "bg-transparent text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* --- THANH TÌM KIẾM & ĐỔI VIEW --- */}
-      <div className="flex justify-between items-center mb-6">
-        <form onSubmit={(e) => e.preventDefault()} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 w-full max-w-sm shadow-sm focus-within:ring-2 focus-within:ring-emerald-100 focus-within:border-emerald-400 transition-all">
-          <FaSearch className="text-gray-400 text-lg" />
-          <input
-            type="search"
-            placeholder="Search applications..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 focus:ring-0"
-          />
-        </form>
-
-        <div className="flex items-center gap-2 bg-white border border-gray-200 p-1 rounded-lg shadow-sm">
-          <button onClick={() => setIsCardView(true)} className={`p-2 rounded-md transition-colors ${isCardView ? "bg-gray-100 text-[#188155]" : "text-gray-400 hover:text-gray-700"}`}>
-            <FaThLarge />
-          </button>
-          <button onClick={() => setIsCardView(false)} className={`p-2 rounded-md transition-colors ${!isCardView ? "bg-gray-100 text-[#188155]" : "text-gray-400 hover:text-gray-700"}`}>
-            <FaList />
-          </button>
+          <div className="flex items-center gap-2 bg-white border border-gray-200 p-1 rounded-lg shadow-sm">
+            <button onClick={() => setIsCardView(true)} className={`p-2 rounded-md transition-colors ${isCardView ? "bg-gray-100 text-[#188155]" : "text-gray-400 hover:text-gray-700"}`}>
+              <FaThLarge />
+            </button>
+            <button onClick={() => setIsCardView(false)} className={`p-2 rounded-md transition-colors ${!isCardView ? "bg-gray-100 text-[#188155]" : "text-gray-400 hover:text-gray-700"}`}>
+              <FaList />
+            </button>
+          </div>
         </div>
-      </div>
 
-      {isLoading && <p className="text-sm text-gray-500">Loading applications...</p>}
+        {isLoading && <p className="text-sm text-gray-500">Loading applications...</p>}
 
-      {/* ================== GRID VIEW (CARDS) ================== */}
-      {!isLoading && isCardView ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        {/* ================== GRID VIEW (CARDS) ================== */}
+        {!isLoading && isCardView ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           
           {visibleJobs.map((job) => (
             <div
@@ -221,7 +223,7 @@ const Applications = () => {
                   LOGO
                 </div>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${getBadgeStyle(job.status)}`}>
-                  {job.status || "APPLIED"}
+                    {job.status === 'scheduled_interview' ? 'INTERVIEW' : (job.status || "APPLIED")}
                 </span>
               </div>
 
@@ -265,61 +267,63 @@ const Applications = () => {
             <p className="text-sm text-gray-500 mt-1">Apply more</p>
           </Link>
 
-        </div>
-      ) : null}
-
-      {/* ================== LIST VIEW (TABLE) ================== */}
-      {!isLoading && !isCardView ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-4"></th>
-                  <th className="px-6 py-4 font-bold">Title</th>
-                  <th className="px-6 py-4 font-bold">Company</th>
-                  <th className="px-6 py-4 font-bold">Status</th>
-                  <th className="px-6 py-4 font-bold">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {visibleJobs.map((job) => (
-                  <tr key={job.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 text-center w-12">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-[#188155] border-gray-300 rounded focus:ring-[#188155]"
-                        checked={checkedJobIds.includes(job.id)}
-                        onChange={() => handleCheckJob(job.id)}
-                      />
-                    </td>
-                    <td className="px-6 py-4 cursor-pointer font-bold text-gray-900" onClick={() => openJobDetail(job)}>
-                      {job.jobTitle}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{job.companyName}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${getBadgeStyle(job.status)}`}>
-                        {job.status || "APPLIED"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 font-medium">{formatDate(job.applicationDate)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
-          {checkedJobIds.length > 0 && (
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end">
-              <button
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-sm"
-                onClick={handleBulkDelete}
-              >
-                Delete Selected ({checkedJobIds.length})
-              </button>
+        ) : null}
+
+        {/* ================== LIST VIEW (TABLE) ================== */}
+        {!isLoading && !isCardView ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                  <tr>
+                    <th className="px-6 py-4"></th>
+                    <th className="px-6 py-4 font-bold">Title</th>
+                    <th className="px-6 py-4 font-bold">Company</th>
+                    <th className="px-6 py-4 font-bold">Status</th>
+                    <th className="px-6 py-4 font-bold">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {visibleJobs.map((job) => (
+                    <tr key={job.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 text-center w-12">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-[#188155] border-gray-300 rounded focus:ring-[#188155]"
+                          checked={checkedJobIds.includes(job.id)}
+                          onChange={() => handleCheckJob(job.id)}
+                        />
+                      </td>
+                      <td className="px-6 py-4 cursor-pointer font-bold text-gray-900" onClick={() => openJobDetail(job)}>
+                        {job.jobTitle}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{job.companyName}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${getBadgeStyle(job.status)}`}>
+                          {job.status === 'scheduled_interview' ? 'INTERVIEW' : (job.status || "APPLIED")}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 font-medium">{formatDate(job.applicationDate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
-      ) : null}
+            {checkedJobIds.length > 0 && (
+              <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end">
+                <button
+                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-sm"
+                  onClick={handleBulkDelete}
+                >
+                  Delete Selected ({checkedJobIds.length})
+                </button>
+              </div>
+            )}
+          </div>
+        ) : null}
+
+      </div>
 
     </div>
   );

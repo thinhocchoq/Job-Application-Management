@@ -147,6 +147,21 @@ router.post("/", requireAuth, async (req, res) => {
       }
     }
 
+    if (normalizedApplicationId) {
+      const applicationCheck = await client.query(
+        `SELECT a.id
+         FROM applications a
+         INNER JOIN job_posts jp ON jp.id = a.job_post_id
+         WHERE a.id = $1 AND a.candidate_id = $2 AND jp.recruiter_id = $3`,
+        [normalizedApplicationId, candidateId, req.user.id]
+      );
+
+      if (applicationCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(403).json({ message: "You don't have permission to send messages about this application" });
+      }
+    }
+
     const result = await client.query(
       `INSERT INTO messages (
           sender_recruiter_id,

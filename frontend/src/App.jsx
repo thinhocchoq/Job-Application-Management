@@ -14,6 +14,7 @@ import Settings from "./Pages/Settings";
 import RecruiterDashboard from "./Pages/Recruiters/RecruiterDashboard";
 import JobPost from "./Pages/Recruiters/JobPost";
 import Application from "./Pages/Recruiters/Application";
+import InterviewList from "./Pages/Recruiters/InterviewList";
 import ForgotPass from "./Pages/Auth/ForgotPass";
 import ResetPassword from "./Pages/Auth/ResetPassword";
 import JobDetail from "./Pages/Jobs/JobDetail";
@@ -35,7 +36,7 @@ function App() {
           <Route path="jobs/:id" element={<JobDetail />} />
           <Route path="jobs/:id/company" element={<Company />} />
         </Route>
-        
+
         <Route path="/candidate" element={<DashboardLayout allowedRole="candidate" />}>
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
@@ -51,6 +52,7 @@ function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="job" element={<JobPost />} />
           <Route path="application" element={<Application/>} />
+          <Route path="interviews" element={<InterviewList />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
